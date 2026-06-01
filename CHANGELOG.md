@@ -5,14 +5,20 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.4.2] — 2026-06-01
+### Fixed
+- `DEPLOY.md`: pinned the Docker apt repository to the `trixie` codename (instead
+  of `$(lsb_release -cs)`) so a future Debian release can't silently switch it
+  after `apt update`/`upgrade`.
+
 ## [v0.4.1] — 2026-06-01
 ### Changed
 - `DEPLOY.md`: reworked the Docker install steps (keyring under
-  `/usr/share/keyrings`, repo via `lsb_release -cs`, `systemctl enable/status`).
+  `/usr/share/keyrings`, `systemctl enable/status`).
 ### Fixed
-- `DEPLOY.md`: added `lsb-release` to the dependencies (so `$(lsb_release -cs)`
-  resolves) and `docker-compose-plugin` to the Docker install (so the
-  `docker compose` commands used later in the guide work).
+- `DEPLOY.md`: added `docker-compose-plugin` to the Docker install (so the
+  `docker compose` commands used later in the guide work) and `lsb-release` to
+  the dependencies.
 
 ## [v0.4.0] — 2026-06-01
 ### Added
@@ -61,6 +67,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.4.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.2
 [v0.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.1
 [v0.4.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.3.0
