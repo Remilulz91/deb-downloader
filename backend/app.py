@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""deb-downloader — HTTP API (MVP, synchronous).
+"""deb-downloader — HTTP API (asynchronous, in-process jobs).
 Copyright (c) 2026 Remilulz91. All rights reserved.
 
 Wraps the fetch engine behind a small FastAPI app:
-  GET  /                   -> minimal selection UI (ui.html)
-  GET  /healthz            -> health check
-  GET  /api/distributions  -> supported distro/version list
-  POST /api/fetch          -> run the fetch synchronously, return the .zip
+  GET  /                        -> minimal selection UI (ui.html)
+  GET  /favicon.svg             -> site icon
+  GET  /healthz                 -> health check
+  GET  /api/distributions       -> supported distro/version list
+  POST /api/jobs                -> enqueue a fetch, returns {job_id, status}
+  GET  /api/jobs/{id}           -> job status (queued|running|done|error)
+  GET  /api/jobs/{id}/download  -> the .zip once the job is done
 
-Synchronous MVP: the request blocks until the .zip is ready (a fetch can take a
-while). The async job-queue version (Redis/RQ) is the next step — see
-../ARCHITECTURE.md.
+Jobs run in a small in-process thread pool: the POST returns immediately and the
+UI polls the status. No external service (Redis/worker) is required. Jobs and
+their archives are kept for JOB_TTL then purged; in-flight jobs are lost if the
+API restarts (acceptable for a single, personal instance).
 
 Run (on a host with Docker + dpkg-dev). Debian's pip is externally managed
 (PEP 668), so use a virtual environment:
@@ -22,27 +26,40 @@ Run (on a host with Docker + dpkg-dev). Debian's pip is externally managed
 Then open http://localhost:8000  (interactive API docs at /docs).
 """
 from __future__ import annotations
+import time
+import uuid
 import shutil
+import threading
 import tempfile
 from pathlib import Path
 from typing import List
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
-from starlette.background import BackgroundTask
 
 import distros
 import fetch
 
 app = FastAPI(
     title="deb-downloader API",
-    version="0.5.0",
+    version="0.6.0",
     description="Fetch a Debian/Ubuntu package and all its dependencies as a .zip.",
 )
 
 UI_PATH = Path(__file__).parent / "ui.html"
 FAVICON_PATH = Path(__file__).parent.parent / "favicon.svg"  # repo root
+
+# --- Job system (in-process) ---------------------------------------------
+MAX_WORKERS = 2          # max concurrent fetches (each spawns a Docker container)
+JOB_TTL = 3600           # seconds a finished job (and its .zip) is kept
+JOBS_DIR = Path(tempfile.gettempdir()) / "deb-downloader-jobs"
+JOBS_DIR.mkdir(parents=True, exist_ok=True)
+
+_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+_JOBS = {}               # job_id -> dict
+_LOCK = threading.Lock()
 
 
 class FetchRequest(BaseModel):
@@ -83,50 +100,106 @@ def api_distributions():
     }
 
 
-@app.post("/api/fetch")
-def api_fetch(req: FetchRequest):
-    """Run the fetch synchronously and return the resulting .zip archive."""
-    # Reuse the engine's strict validation (distro supported, safe pkg names).
+@app.post("/api/jobs")
+def create_job(req: FetchRequest):
+    """Validate, enqueue a fetch job, and return its id immediately."""
     try:
         fetch.validate(req.distro, req.release, req.arch, req.packages)
     except fetch.FetchError as e:
-        raise HTTPException(status_code=400,
-                            detail={"code": e.code, "message": str(e), **e.data})
-
-    out_dir = Path(tempfile.mkdtemp(prefix="ddl_api_"))
-    try:
-        zip_path = fetch.run(
-            req.distro, req.release, req.arch, req.packages,
-            out_dir=out_dir, no_recommends=req.no_recommends,
-        )
-    except fetch.FetchError as e:
-        _cleanup(out_dir)
-        status = {"docker_missing": 503, "timeout": 504,
-                  "package_not_found": 422, "fetch_failed": 502}.get(e.code, 400)
+        status = 422 if e.code == "package_not_found" else 400
         raise HTTPException(status_code=status,
                             detail={"code": e.code, "message": str(e), **e.data})
-    except Exception as e:                    # unexpected (e.g. zip/index build)
-        _cleanup(out_dir)
-        raise HTTPException(status_code=500,
-                            detail={"code": "internal", "message": str(e)})
 
-    # Delete the temporary files once the response has been sent.
-    return FileResponse(
-        str(zip_path),
-        media_type="application/zip",
-        filename=zip_path.name,
-        background=BackgroundTask(_cleanup, out_dir, zip_path),
-    )
+    _purge_expired()
+    job_id = uuid.uuid4().hex
+    with _LOCK:
+        _JOBS[job_id] = {
+            "id": job_id, "status": "queued", "created": time.time(),
+            "packages": req.packages, "distro": req.distro, "release": req.release,
+        }
+    _EXECUTOR.submit(_run_job, job_id, req)
+    return {"job_id": job_id, "status": "queued"}
 
 
-def _cleanup(*paths):
-    """Best-effort removal of temporary files/folders."""
-    for p in paths:
-        p = Path(p)
+@app.get("/api/jobs/{job_id}")
+def job_status(job_id: str):
+    """Return the current state of a job."""
+    with _LOCK:
+        j = _JOBS.get(job_id)
+        if not j:
+            raise HTTPException(status_code=404,
+                                detail={"code": "not_found", "message": "Unknown job."})
+        out = {
+            "job_id": j["id"], "status": j["status"],
+            "packages": j.get("packages"), "distro": j.get("distro"),
+            "release": j.get("release"),
+        }
+        if j["status"] == "done":
+            out.update(filename=j.get("filename"), size=j.get("size"),
+                       package_count=j.get("package_count"),
+                       download_url="api/jobs/%s/download" % job_id)
+        elif j["status"] == "error":
+            out["error"] = j.get("error")
+    return out
+
+
+@app.get("/api/jobs/{job_id}/download")
+def job_download(job_id: str):
+    """Return the .zip once the job is done."""
+    with _LOCK:
+        j = _JOBS.get(job_id)
+        zip_path = j.get("zip_path") if j else None
+        filename = j.get("filename") if j else None
+        ready = bool(j and j["status"] == "done" and zip_path and Path(zip_path).exists())
+    if not ready:
+        raise HTTPException(status_code=404,
+                            detail={"code": "not_ready", "message": "Archive not available."})
+    return FileResponse(zip_path, media_type="application/zip",
+                        filename=filename or "packages.zip")
+
+
+# --- Worker + housekeeping ------------------------------------------------
+def _run_job(job_id, req):
+    """Executed in a worker thread: run the fetch and record the result."""
+    with _LOCK:
+        if job_id in _JOBS:
+            _JOBS[job_id]["status"] = "running"
+    work = JOBS_DIR / job_id / "work"
+    try:
+        work.mkdir(parents=True, exist_ok=True)
+        zip_path = fetch.run(req.distro, req.release, req.arch, req.packages,
+                             out_dir=work, no_recommends=req.no_recommends)
         try:
-            if p.is_dir():
-                shutil.rmtree(p, ignore_errors=True)
-            elif p.exists():
-                p.unlink()
+            count = sum(1 for _ in (work / "debs").glob("*.deb"))
         except OSError:
-            pass
+            count = None
+        size = zip_path.stat().st_size if zip_path.exists() else None
+        shutil.rmtree(work, ignore_errors=True)   # keep the .zip, drop the work tree
+        with _LOCK:
+            if job_id in _JOBS:
+                _JOBS[job_id].update(status="done", zip_path=str(zip_path),
+                                     filename=zip_path.name, size=size,
+                                     package_count=count)
+    except fetch.FetchError as e:
+        shutil.rmtree(work, ignore_errors=True)
+        with _LOCK:
+            if job_id in _JOBS:
+                _JOBS[job_id].update(status="error",
+                                     error={"code": e.code, "message": str(e), **e.data})
+    except Exception as e:
+        shutil.rmtree(work, ignore_errors=True)
+        with _LOCK:
+            if job_id in _JOBS:
+                _JOBS[job_id].update(status="error",
+                                     error={"code": "internal", "message": str(e)})
+
+
+def _purge_expired():
+    """Drop jobs (and their archives) older than JOB_TTL."""
+    now = time.time()
+    with _LOCK:
+        expired = [jid for jid, j in _JOBS.items() if now - j.get("created", now) > JOB_TTL]
+        for jid in expired:
+            _JOBS.pop(jid, None)
+    for jid in expired:
+        shutil.rmtree(JOBS_DIR / jid, ignore_errors=True)

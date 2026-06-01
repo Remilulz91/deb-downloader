@@ -103,6 +103,7 @@ var I18N = {
     footer: "© 2026 Remilulz91 — deb-downloader. All rights reserved.",
     noPkg: "Please enter at least one package.",
     apiErr: "Could not reach the API.",
+    queued: '<span class="spin"></span>Queued… waiting for a free worker.',
     working: '<span class="spin"></span>Fetching {pkgs} for {distro} {release}… This can take a while.',
     done: "✅ Done — your download (<b>{name}</b>) has started.",
     failPrefix: "❌ ",
@@ -122,6 +123,7 @@ var I18N = {
     footer: "© 2026 Remilulz91 — deb-downloader. Tous droits réservés.",
     noPkg: "Veuillez saisir au moins un paquet.",
     apiErr: "Impossible de joindre l'API.",
+    queued: '<span class="spin"></span>En file d\'attente… en attente d\'un emplacement libre.',
     working: '<span class="spin"></span>Récupération de {pkgs} pour {distro} {release}… Cela peut prendre un moment.',
     done: "✅ Terminé — votre téléchargement (<b>{name}</b>) a démarré.",
     failPrefix: "❌ ",
@@ -202,6 +204,43 @@ fetch("api/distributions")
 
 distroSel.addEventListener("change", fillReleases);
 
+function showError(d, fallbackMsg){
+  // d = structured API detail ({code,...}) or null; fallbackMsg = plain string.
+  showStatus("err", function(){
+    return t("failPrefix") + (d && d.code ? localizeError(d) : (fallbackMsg || t("errFetch")));
+  });
+}
+
+function pollJob(jobId, pkgsStr, distroV, relV){
+  fetch("api/jobs/" + jobId)
+    .then(function(res){
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(function(j){
+      if(j.status === "queued"){
+        showStatus("work", function(){ return t("queued"); });
+        setTimeout(function(){ pollJob(jobId, pkgsStr, distroV, relV); }, 2000);
+      } else if(j.status === "running"){
+        showStatus("work", function(){
+          return t("working").replace("{pkgs}", pkgsStr).replace("{distro}", distroV).replace("{release}", relV);
+        });
+        setTimeout(function(){ pollJob(jobId, pkgsStr, distroV, relV); }, 2000);
+      } else if(j.status === "done"){
+        var name = j.filename || "packages.zip";
+        var a = document.createElement("a");
+        a.href = "api/jobs/" + jobId + "/download"; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        showStatus("ok", function(){ return t("done").replace("{name}", name); });
+        goBtn.disabled = false;
+      } else { // error
+        showError(j.error, null);
+        goBtn.disabled = false;
+      }
+    })
+    .catch(function(err){ showError(null, err.message); goBtn.disabled = false; });
+}
+
 goBtn.addEventListener("click", function(){
   var packages = pkgInput.value.split(/[\s,]+/).filter(Boolean);
   if(packages.length === 0){ showStatus("err", function(){ return t("noPkg"); }); return; }
@@ -210,46 +249,32 @@ goBtn.addEventListener("click", function(){
     distro: distroSel.value, release: releaseSel.value, arch: "amd64",
     packages: packages, no_recommends: norec.checked
   };
+  var pkgsStr = packages.join(", "), distroV = distroSel.value, relV = releaseSel.value;
 
   goBtn.disabled = true;
-  var pkgsStr = packages.join(", "), distroV = distroSel.value, relV = releaseSel.value;
-  showStatus("work", function(){
-    return t("working").replace("{pkgs}", pkgsStr).replace("{distro}", distroV).replace("{release}", relV);
-  });
+  showStatus("work", function(){ return t("queued"); });
 
-  fetch("api/fetch", {
+  fetch("api/jobs", {
     method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
   })
   .then(function(res){
-    if(!res.ok){
-      return res.json().then(function(j){
+    return res.json().then(function(j){
+      if(!res.ok){
         var d = j && j.detail;
-        var e;
-        if (d && typeof d === "object" && !Array.isArray(d) && d.code) { e = new Error(localizeError(d)); e.apiDetail = d; }
-        else if (typeof d === "string") e = new Error(d);
-        else e = new Error(t("errFetch"));
+        var e = new Error((d && d.code) ? localizeError(d) : (typeof d === "string" ? d : t("errFetch")));
+        if (d && d.code) e.apiDetail = d;
         throw e;
-      }, function(){ throw new Error("HTTP " + res.status); });
-    }
-    var name = "packages.zip";
-    var cd = res.headers.get("Content-Disposition") || "";
-    var m = cd.match(/filename="?([^"]+)"?/);
-    if(m) name = m[1];
-    return res.blob().then(function(blob){ return {blob: blob, name: name}; });
+      }
+      return j;
+    }, function(){ throw new Error("HTTP " + res.status); });
   })
-  .then(function(out){
-    var url = URL.createObjectURL(out.blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = out.name; document.body.appendChild(a); a.click();
-    a.remove(); URL.revokeObjectURL(url);
-    var name = out.name;
-    showStatus("ok", function(){ return t("done").replace("{name}", name); });
+  .then(function(j){
+    pollJob(j.job_id, pkgsStr, distroV, relV);
   })
   .catch(function(err){
-    var d = err && err.apiDetail;
-    showStatus("err", function(){ return t("failPrefix") + (d ? localizeError(d) : err.message); });
-  })
-  .finally(function(){ goBtn.disabled = false; });
+    showError(err.apiDetail, err.message);
+    goBtn.disabled = false;
+  });
 });
 
 // init language: saved choice > browser > English

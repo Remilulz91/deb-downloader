@@ -232,8 +232,10 @@ Open `http://<machine-ip>:8000` (or `http://localhost:8000` on the machine):
 pick a distribution and version, type a package (e.g. `nginx`), and download the
 `.zip`. Interactive API docs are at `/docs`. Press `Ctrl+C` to stop.
 
-> The first fetch of a given package downloads it inside a Docker container, so
-> it can take a little while. The request stays open until the `.zip` is ready.
+> A fetch downloads packages inside a Docker container, so it can take a while.
+> The page shows the progress (queued → fetching) and downloads the `.zip`
+> automatically once it is ready — the request no longer blocks, and several
+> fetches can run at once.
 
 ---
 
