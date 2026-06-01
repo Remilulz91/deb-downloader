@@ -106,7 +106,7 @@ var I18N = {
     working: '<span class="spin"></span>Fetching {pkgs} for {distro} {release}… This can take a while.',
     done: "✅ Done — your download (<b>{name}</b>) has started.",
     failPrefix: "❌ ",
-    errNotFound: 'Package(s) not found: {pkgs}. Check the exact name — on Debian/Ubuntu it is often e.g. "apache2", not "apache".',
+    errNotFound: "Package(s) not found: {pkgs}. Check the exact name — it may not exist in this distribution's repositories.",
     errInvalid: "Invalid package name(s): {names}. Use lowercase letters, digits and + . _ -.",
     errTooMany: "Too many packages (max {max}).",
     errFetch: "The fetch failed. Check the package name and try again."
@@ -125,7 +125,7 @@ var I18N = {
     working: '<span class="spin"></span>Récupération de {pkgs} pour {distro} {release}… Cela peut prendre un moment.',
     done: "✅ Terminé — votre téléchargement (<b>{name}</b>) a démarré.",
     failPrefix: "❌ ",
-    errNotFound: "Paquet(s) introuvable(s) : {pkgs}. Vérifiez le nom exact — sur Debian/Ubuntu c'est souvent « apache2 », pas « apache ».",
+    errNotFound: "Paquet(s) introuvable(s) : {pkgs}. Vérifiez le nom exact — il n'existe peut-être pas dans les dépôts de cette distribution.",
     errInvalid: "Nom(s) de paquet invalide(s) : {names}. Utilisez minuscules, chiffres et + . _ -.",
     errTooMany: "Trop de paquets (max {max}).",
     errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez."
@@ -168,10 +168,14 @@ function applyLang(){
   pkgInput.setAttribute("placeholder", t("placeholder"));
   var btns = document.querySelectorAll(".lang button");
   for (var i=0;i<btns.length;i++){ btns[i].classList.toggle("active", btns[i].getAttribute("data-lang")===lang); }
+  if (lastStatus){ statusEl.innerHTML = lastStatus.fn(); }   // re-render the status in the new language
 }
 function setLang(l){ lang = (l==="fr")?"fr":"en"; try{localStorage.setItem("ddl_lang",lang);}catch(e){} applyLang(); }
 
-function setStatus(kind, html){ statusEl.className = "status show " + kind; statusEl.innerHTML = html; }
+// Remember the current status as a render function so it can be re-localized
+// when the user switches language (FR/EN) after it was shown.
+var lastStatus = null;
+function showStatus(kind, fn){ lastStatus = {kind:kind, fn:fn}; statusEl.className = "status show " + kind; statusEl.innerHTML = fn(); }
 
 function fillReleases(){
   var d = distroSel.value; releaseSel.innerHTML = "";
@@ -194,13 +198,13 @@ fetch("api/distributions")
     });
     fillReleases();
   })
-  .catch(function(){ setStatus("err", t("apiErr")); });
+  .catch(function(){ showStatus("err", function(){ return t("apiErr"); }); });
 
 distroSel.addEventListener("change", fillReleases);
 
 goBtn.addEventListener("click", function(){
   var packages = pkgInput.value.split(/[\s,]+/).filter(Boolean);
-  if(packages.length === 0){ setStatus("err", t("noPkg")); return; }
+  if(packages.length === 0){ showStatus("err", function(){ return t("noPkg"); }); return; }
 
   var body = {
     distro: distroSel.value, release: releaseSel.value, arch: "amd64",
@@ -208,10 +212,10 @@ goBtn.addEventListener("click", function(){
   };
 
   goBtn.disabled = true;
-  setStatus("work", t("working")
-    .replace("{pkgs}", packages.join(", "))
-    .replace("{distro}", distroSel.value)
-    .replace("{release}", releaseSel.value));
+  var pkgsStr = packages.join(", "), distroV = distroSel.value, relV = releaseSel.value;
+  showStatus("work", function(){
+    return t("working").replace("{pkgs}", pkgsStr).replace("{distro}", distroV).replace("{release}", relV);
+  });
 
   fetch("api/fetch", {
     method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
@@ -220,11 +224,11 @@ goBtn.addEventListener("click", function(){
     if(!res.ok){
       return res.json().then(function(j){
         var d = j && j.detail;
-        var msg;
-        if (d && typeof d === "object" && !Array.isArray(d) && d.code) msg = localizeError(d);
-        else if (typeof d === "string") msg = d;
-        else msg = t("errFetch");
-        throw new Error(msg);
+        var e;
+        if (d && typeof d === "object" && !Array.isArray(d) && d.code) { e = new Error(localizeError(d)); e.apiDetail = d; }
+        else if (typeof d === "string") e = new Error(d);
+        else e = new Error(t("errFetch"));
+        throw e;
       }, function(){ throw new Error("HTTP " + res.status); });
     }
     var name = "packages.zip";
@@ -238,9 +242,13 @@ goBtn.addEventListener("click", function(){
     var a = document.createElement("a");
     a.href = url; a.download = out.name; document.body.appendChild(a); a.click();
     a.remove(); URL.revokeObjectURL(url);
-    setStatus("ok", t("done").replace("{name}", out.name));
+    var name = out.name;
+    showStatus("ok", function(){ return t("done").replace("{name}", name); });
   })
-  .catch(function(err){ setStatus("err", t("failPrefix") + err.message); })
+  .catch(function(err){
+    var d = err && err.apiDetail;
+    showStatus("err", function(){ return t("failPrefix") + (d ? localizeError(d) : err.message); });
+  })
   .finally(function(){ goBtn.disabled = false; });
 });
 

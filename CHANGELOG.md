@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.8] — 2026-06-01
+### Fixed
+- The "package not found" message no longer hard-codes the apache/apache2
+  example (confusing for other packages such as `packer`); it is now generic.
+- Status and error messages now **re-translate live** when the language is
+  switched (FR/EN). Previously a message stayed in the language it was first
+  shown in.
+
 ## [v0.5.7] — 2026-06-01
 ### Changed
 - **Clean, localized error messages.** When a fetch fails — e.g. an unknown
@@ -161,6 +169,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.8]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.8
 [v0.5.7]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.7
 [v0.5.6]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.6
 [v0.5.5]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.5
