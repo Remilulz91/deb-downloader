@@ -41,11 +41,20 @@ Instead of the CLI, you can drive the engine from a browser. Install the deps
 and start the API on the host that has Docker.
 
 On Debian 13 (and other recent distros) `pip` refuses to install system-wide
-(PEP 668, "externally-managed-environment"), so use a **virtual environment**:
+(PEP 668, "externally-managed-environment"), so use a **virtual environment**.
+
+If you cloned the project with `sudo` (as in `DEPLOY.md`), the folder is owned
+by root — make it yours first, otherwise creating the venv fails with
+`Permission denied`. Do **not** create the venv with `sudo` (the install would
+then fail too).
 
 ```bash
-# One-time setup
-sudo apt-get install -y python3-venv
+# Own the project, and make sure your user can call Docker
+sudo chown -R "$USER":"$USER" /var/www/deb-downloader
+sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
+sudo apt-get install -y python3-venv dpkg-dev
+
+# Create the virtual environment (NO sudo) and install
 cd /var/www/deb-downloader/backend
 python3 -m venv .venv
 source .venv/bin/activate
@@ -55,9 +64,29 @@ pip install -r requirements.txt
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
+> Already created a root-owned `.venv` by mistake? Remove it first:
+> `sudo rm -rf /var/www/deb-downloader/backend/.venv`, then redo the steps above.
+
 Then open **http://localhost:8000** for the selection UI (pick distro/version,
 type packages, click to download the `.zip`). Interactive API docs are at
 **/docs**.
+
+### Run it automatically with systemd (recommended)
+
+So you don't have to start the API by hand every time, install the provided
+service (it starts on boot and restarts on failure):
+
+```bash
+sudo cp /var/www/deb-downloader/deploy/deb-downloader-api.service /etc/systemd/system/
+# edit User=/Group= in that file if your username is not "debdownloader"
+sudo systemctl daemon-reload
+sudo systemctl enable --now deb-downloader-api
+sudo systemctl status deb-downloader-api
+```
+
+Useful commands: `sudo systemctl restart deb-downloader-api`,
+`sudo systemctl stop deb-downloader-api`, and `journalctl -u deb-downloader-api -f`
+to follow the logs.
 
 Endpoints:
 - `GET  /` — minimal selection UI (`ui.html`)

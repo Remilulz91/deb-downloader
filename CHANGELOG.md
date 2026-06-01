@@ -5,6 +5,17 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.2] — 2026-06-01
+### Added
+- **systemd service** (`deploy/deb-downloader-api.service`): run the API
+  automatically on boot, with restart-on-failure. Documented in
+  `backend/README.md`.
+
+### Fixed
+- Backend docs: documented the ownership step (`chown` the project so the venv
+  can be created without `sudo`), the `docker` group membership and `dpkg-dev`,
+  to avoid the `Permission denied` errors when setting up the API.
+
 ## [v0.5.1] — 2026-06-01
 ### Fixed
 - Backend docs: install the API in a **Python virtual environment** instead of a
@@ -92,6 +103,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.2
 [v0.5.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.1
 [v0.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.0
 [v0.4.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.2

@@ -1,0 +1,33 @@
+# deb-downloader API — systemd service (runs the FastAPI/uvicorn backend).
+#
+# Install:
+#   sudo cp /var/www/deb-downloader/deploy/deb-downloader-api.service /etc/systemd/system/
+#   # edit User=/Group= below if your username is not "debdownloader"
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now deb-downloader-api
+#   sudo systemctl status deb-downloader-api
+#
+# Requirements:
+#   - The venv exists at <WorkingDirectory>/.venv (see backend/README.md).
+#   - The User below owns the project folder and is in the "docker" group
+#     (sudo usermod -aG docker debdownloader), so the API can call Docker.
+
+[Unit]
+Description=deb-downloader API (FastAPI/uvicorn)
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+# >>> change these two to your username if needed <<<
+User=debdownloader
+Group=debdownloader
+WorkingDirectory=/var/www/deb-downloader/backend
+ExecStart=/var/www/deb-downloader/backend/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
