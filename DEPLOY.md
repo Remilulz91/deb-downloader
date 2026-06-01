@@ -8,7 +8,8 @@ It has two parts:
 
 - **Part 1 — The website**: the landing page, served by nginx in Docker (port 80).
 - **Part 2 — The engine & API**: the actual tool that downloads `.deb` packages,
-  with a web page to use it (port 8000). Optional, but it's the whole point.
+  with a web page to use it. Once set up, the website proxies it at
+  `http://<ip>/app` (no port to type). Optional, but it's the whole point.
 
 Everything below is copy-paste. Optional hardening with **UFW** and **fail2ban**
 is included.
@@ -255,13 +256,28 @@ to follow the logs. Once enabled, you never start it by hand again.
 
 ---
 
-## 12. (Optional) open the API port in UFW
+## 12. Access the tool at http://&lt;ip&gt;/app (no port)
 
-The API runs directly on the host (not in Docker), so UFW **does** apply to it.
-If you enabled UFW in section 6 and want the tool reachable from the LAN:
+Once both the website (Part 1) and the API (section 11) are running, the
+website **reverse-proxies** the tool. Open **`http://<machine-ip>/app`** (or
+`http://localhost/app`) — no `:8000` to type. The landing page stays at `/`.
+
+This relies on `deploy/nginx.conf` (the `/app` proxy) and the fixed Compose
+subnet, so the nginx container can reach the API on the host. If you set up the
+website **before this version**, recreate its container once to apply the new
+config:
 
 ```bash
-sudo ufw allow 8000/tcp
+cd /var/www/deb-downloader
+sudo docker compose -f deploy/docker-compose.yml up -d --force-recreate
+```
+
+You do **not** need to expose port 8000 to the LAN — keep it closed; visitors
+reach the tool through port 80. If UFW is enabled (section 6), allow only the
+Docker subnet to reach the API internally:
+
+```bash
+sudo ufw allow from 172.20.0.0/24 to any port 8000 proto tcp
 sudo ufw status verbose
 ```
 
@@ -282,7 +298,7 @@ restart the API; if it touched `deploy/nginx.conf`, restart the web container:
 
 ```bash
 sudo systemctl restart deb-downloader-api                       # engine/API
-sudo docker compose -f deploy/docker-compose.yml restart        # website
+sudo docker compose -f deploy/docker-compose.yml up -d          # website (recreates if config changed)
 ```
 
 ---

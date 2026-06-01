@@ -42,6 +42,7 @@ app = FastAPI(
 )
 
 UI_PATH = Path(__file__).parent / "ui.html"
+FAVICON_PATH = Path(__file__).parent.parent / "favicon.svg"  # repo root
 
 
 class FetchRequest(BaseModel):
@@ -58,6 +59,14 @@ def ui():
     if UI_PATH.exists():
         return HTMLResponse(UI_PATH.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>deb-downloader API</h1><p>See <a href='/docs'>/docs</a>.</p>")
+
+
+@app.get("/favicon.svg", include_in_schema=False)
+def favicon():
+    """Serve the site favicon (lives at the repo root)."""
+    if FAVICON_PATH.exists():
+        return FileResponse(str(FAVICON_PATH), media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="favicon not found")
 
 
 @app.get("/healthz")

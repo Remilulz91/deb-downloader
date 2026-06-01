@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>deb-downloader — fetch packages</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <style>
   :root{
     --bg:#0d1117; --bg-soft:#161b22; --bg-card:#1b222c; --border:#2a3340;
@@ -75,7 +75,7 @@
     <div id="status" class="status"></div>
   </div>
 
-  <footer>© 2026 Remilulz91 — deb-downloader. All rights reserved. · <a href="/docs" style="color:var(--text-dim)">API docs</a></footer>
+  <footer>© 2026 Remilulz91 — deb-downloader. All rights reserved.</footer>
 </div>
 
 <script>
@@ -104,7 +104,9 @@ function fillReleases(){
 }
 
 // Load supported distributions from the API.
-fetch("/api/distributions")
+// Relative paths so the page works both standalone (:8000) and behind the
+// reverse proxy (served under /app/).
+fetch("api/distributions")
   .then(function(r){ return r.json(); })
   .then(function(data){
     (data.distributions || []).forEach(function(item){
@@ -138,7 +140,7 @@ goBtn.addEventListener("click", function(){
   setStatus("work", '<span class="spin"></span>Fetching ' + packages.join(", ") +
     ' for ' + distroSel.value + ' ' + releaseSel.value + '… This can take a while.');
 
-  fetch("/api/fetch", {
+  fetch("api/fetch", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(body)

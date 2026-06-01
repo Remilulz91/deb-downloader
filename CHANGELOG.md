@@ -5,6 +5,20 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.4] — 2026-06-01
+### Added
+- **Reverse proxy**: the website now serves the tool at `http://<ip>/app`
+  (no port to type). nginx (`deploy/nginx.conf`) proxies `/app` to the
+  engine/API on the host, and `deploy/docker-compose.yml` pins a fixed subnet
+  (172.20.0.0/24) so the container can reach it.
+- The API now serves its own `/favicon.svg`, so the icon shows on the tool page.
+
+### Changed
+- `backend/ui.html` now uses relative paths, so it works both standalone
+  (`:8000`) and behind the `/app` proxy.
+- `DEPLOY.md`: documented `/app` access, the one-time container recreation, and
+  the UFW rule for the Docker subnet (port 8000 stays closed to the LAN).
+
 ## [v0.5.3] — 2026-06-01
 ### Changed
 - **All deployment docs consolidated into a single `DEPLOY.md`**: now organized
@@ -115,6 +129,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.4
 [v0.5.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.3
 [v0.5.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.2
 [v0.5.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.1

@@ -19,3 +19,12 @@ services:
       # Uncomment the next line (and create the folder) to enable the
       # optional nginx fail2ban jail described in DEPLOY.md.
       # - /var/log/deb-downloader-nginx:/var/log/nginx
+
+# Fixed subnet so the host gateway is always 172.20.0.1 — used by the nginx
+# reverse proxy (deploy/nginx.conf, location /app/) to reach the engine/API
+# running on the host at port 8000.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
