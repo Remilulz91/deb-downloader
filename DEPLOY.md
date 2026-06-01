@@ -1,20 +1,21 @@
-# Self-hosting deb-downloader — Debian 13 + nginx + Docker
+# Self-hosting deb-downloader — Debian 13
 
-This is a step-by-step tutorial to host the **deb-downloader website** on your
-own machine. It targets **Debian 13 (Trixie)** — a VirtualBox VM, a spare PC, or
-a small server — and serves the site over **plain HTTP on your local network**
-(no domain name, no TLS). Think of it as the Linux equivalent of just opening
-`index.html` on Windows, but served properly by nginx.
+This is the single, step-by-step guide to install **deb-downloader** on your own
+machine. It targets **Debian 13 (Trixie)** — a VirtualBox VM, a spare PC, or a
+small server — over **plain HTTP on your local network** (no domain, no TLS).
+
+It has two parts:
+
+- **Part 1 — The website**: the landing page, served by nginx in Docker (port 80).
+- **Part 2 — The engine & API**: the actual tool that downloads `.deb` packages,
+  with a web page to use it (port 8000). Optional, but it's the whole point.
 
 Everything below is copy-paste. Optional hardening with **UFW** and **fail2ban**
-is included at the end.
-
-> The site is fully static, so this is lightweight: one small nginx container
-> serving a few files. The **backend engine** (which actually fetches `.deb`
-> packages) is a separate component — see `backend/README.md`; it is **not**
-> required to run the website.
+is included.
 
 ---
+
+# Part 1 — The website
 
 ## 0. What you will get
 
@@ -23,7 +24,7 @@ A web server reachable at:
 - `http://localhost` — from the machine itself, and
 - `http://<machine-ip>` — from other devices on the same network.
 
-The page shows the project and tells visitors whether they are on the latest
+The page presents the project and tells visitors whether they are on the latest
 released version.
 
 ---
@@ -61,12 +62,6 @@ Check it works:
 sudo docker run --rm hello-world
 ```
 
-(Optional) Run Docker without `sudo` — log out and back in afterwards:
-
-```bash
-sudo usermod -aG docker "$USER"
-```
-
 ---
 
 ## 3. Get the project into /var/www
@@ -75,13 +70,16 @@ sudo usermod -aG docker "$USER"
 sudo apt-get install -y git
 sudo mkdir -p /var/www
 sudo git clone https://github.com/Remilulz91/deb-downloader.git /var/www/deb-downloader
+
+# Make the project yours (needed for updates, and for the engine in Part 2)
+sudo chown -R "$USER":"$USER" /var/www/deb-downloader
 ```
 
 ---
 
 ## 4. Start the website (nginx in Docker)
 
-The repository already ships a ready-to-use nginx config and a Compose file in
+The repository ships a ready-to-use nginx config and a Compose file in
 `deploy/`. Just start it:
 
 ```bash
@@ -186,45 +184,137 @@ To feed them to fail2ban:
 
 ---
 
-## 8. Updating to a new version
+# Part 2 — The engine & API
 
-The site files are bind-mounted live, so updating is just a `git pull`:
+The website is just the front page. The **engine** is what actually downloads a
+package and all its dependencies. It runs on this same machine (it uses Docker)
+and gives you a small web page to pick a distribution + packages and download a
+`.zip`. The API listens on **port 8000**.
+
+## 8. Install the engine dependencies
+
+Docker is already installed (Part 1). Add `dpkg-dev` (to build the offline
+repository) and the Python venv tooling, and let your user use Docker:
 
 ```bash
-cd /var/www/deb-downloader
-sudo git pull
+sudo apt-get install -y dpkg-dev python3-venv
+sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 ```
 
-The new files are served immediately — refresh the page and the version banner
-should reflect the latest release. Only restart the container if you changed
-`deploy/nginx.conf`:
+> The `docker` group membership is required: the API calls Docker on your
+> behalf. Without it, fetches fail with a permission error.
+
+---
+
+## 9. Create the Python environment
+
+On Debian, `pip` refuses to install system-wide (PEP 668), so use a virtual
+environment. **Do not use `sudo` here** — the project is already yours from
+section 3.
 
 ```bash
-sudo docker compose -f deploy/docker-compose.yml restart
+cd /var/www/deb-downloader/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ---
 
-## 9. Stopping / removing
+## 10. Test it once (manually)
 
 ```bash
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+Open `http://<machine-ip>:8000` (or `http://localhost:8000` on the machine):
+pick a distribution and version, type a package (e.g. `nginx`), and download the
+`.zip`. Interactive API docs are at `/docs`. Press `Ctrl+C` to stop.
+
+> The first fetch of a given package downloads it inside a Docker container, so
+> it can take a little while. The request stays open until the `.zip` is ready.
+
+---
+
+## 11. Run the API automatically with systemd (recommended)
+
+So you don't have to start it by hand every time, install the provided service
+(it starts on boot and restarts on failure):
+
+```bash
+sudo cp /var/www/deb-downloader/deploy/deb-downloader-api.service /etc/systemd/system/
+# edit User=/Group= in that file if your username is not "debdownloader"
+sudo systemctl daemon-reload
+sudo systemctl enable --now deb-downloader-api
+sudo systemctl status deb-downloader-api
+```
+
+Useful commands: `sudo systemctl restart deb-downloader-api`,
+`sudo systemctl stop deb-downloader-api`, and `journalctl -u deb-downloader-api -f`
+to follow the logs. Once enabled, you never start it by hand again.
+
+---
+
+## 12. (Optional) open the API port in UFW
+
+The API runs directly on the host (not in Docker), so UFW **does** apply to it.
+If you enabled UFW in section 6 and want the tool reachable from the LAN:
+
+```bash
+sudo ufw allow 8000/tcp
+sudo ufw status verbose
+```
+
+---
+
+# Updating to a new version
+
+The project is bind-mounted, so updating the site is just a pull:
+
+```bash
+cd /var/www/deb-downloader
+git pull
+```
+
+The site files are served immediately (refresh the page; the version banner
+should reflect the latest release). After an update that touched the engine,
+restart the API; if it touched `deploy/nginx.conf`, restart the web container:
+
+```bash
+sudo systemctl restart deb-downloader-api                       # engine/API
+sudo docker compose -f deploy/docker-compose.yml restart        # website
+```
+
+---
+
+# Stopping / removing
+
+```bash
+# Website
 cd /var/www/deb-downloader
 sudo docker compose -f deploy/docker-compose.yml down
+
+# Engine/API
+sudo systemctl disable --now deb-downloader-api
 ```
 
 ---
 
-## 10. Troubleshooting
+# Troubleshooting
 
 **Port 80 already in use** — another web server is running. Stop it
 (`sudo systemctl stop apache2` / `nginx`) or change the published port in the
 Compose file (e.g. `"8080:80"`).
 
-**`permission denied` talking to Docker** — either use `sudo`, or finish the
-`usermod -aG docker` step from section 2 and re-login.
+**`permission denied` talking to Docker** — finish the `usermod -aG docker`
+step (section 8) and re-login (or run `newgrp docker`).
 
-**Can't reach the site from another machine** — check the firewall (section 6)
-and, on VirtualBox, the adapter mode (section 5).
+**`externally-managed-environment` from pip** — you skipped the virtual
+environment; do section 9 (`python3 -m venv .venv` + `source .venv/bin/activate`).
+Never create the venv with `sudo`.
+
+**Can't reach the site/API from another machine** — check the firewall
+(sections 6 and 12) and, on VirtualBox, the adapter mode (section 5).
 
 **Page shows 403 for a file** — that's intentional: the config blocks source
 and project files. Only the site (`index.html`, `404.html`) is served.

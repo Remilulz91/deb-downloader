@@ -8,24 +8,27 @@ Copyright © 2026 **Remilulz91** — All rights reserved. Proprietary license (s
 
 ## This repository
 
-This repository contains the **website** for deb-downloader: a static landing
-page that presents the project and **automatically tells visitors whether they
-are running the latest version** (no auto-update). The site is bilingual
-(English / French).
+This repository holds the whole **deb-downloader** project: the static landing
+page (with a built-in version indicator, bilingual EN/FR) **and** the engine +
+HTTP API that actually fetches the packages.
 
-The site is **100% static** (HTML/CSS/JS, no build step, no dependencies) and
-deploys by simply **dropping the files** onto any web host.
+👉 **To install it on your own machine, follow [`DEPLOY.md`](DEPLOY.md)** — a
+single, step-by-step guide (Debian 13) covering both the website and the engine.
+
+The landing page is **100% static** (HTML/CSS/JS, no build step, no
+dependencies) and can also be dropped onto any web host as-is.
 
 ```
 deb-downloader/
 ├─ index.html        ← the whole site (CSS + JS inlined), bilingual EN/FR
 ├─ 404.html          ← error page
+├─ favicon.svg       ← site icon
 ├─ LICENSE           ← proprietary license
 ├─ CHANGELOG.md      ← version history
-├─ DEPLOY.md         ← self-hosting tutorial (Debian 13 + nginx + Docker)
+├─ DEPLOY.md         ← full self-hosting guide (website + engine/API)
 ├─ ARCHITECTURE.md   ← backend engine design
-├─ deploy/           ← ready-made nginx / Docker Compose / fail2ban configs
-└─ backend/          ← the package-fetching engine (separate component)
+├─ deploy/           ← ready-made nginx / Compose / systemd / fail2ban configs
+└─ backend/          ← the package-fetching engine + HTTP API
 ```
 
 ## The version indicator
@@ -49,16 +52,16 @@ The website is static, so you have several easy options:
 - **GitHub Pages** — Settings → Pages → branch `main`, folder `/root`. Free, tied to the repo.
 - **Cloudflare Pages / Netlify** — drag-and-drop the folder, or connect the repo.
 - **Shared hosting (FTP)** — drop the files into the public web folder.
-- **Self-hosting with nginx + Docker** — see [`DEPLOY.md`](DEPLOY.md) for a full
-  step-by-step tutorial (Debian 13, local HTTP, optional UFW + fail2ban).
+- **Self-hosting (website + engine/API)** — see [`DEPLOY.md`](DEPLOY.md) for the
+  full step-by-step guide (Debian 13, local HTTP, optional UFW + fail2ban).
 
 No Linux server, nginx config or package install is required **for the site**
 unless you choose to self-host it.
 
 > ℹ️ The **engine** that actually fetches the `.deb` files (dependency
-> resolution via `apt` inside Docker containers) runs server-side and is
-> developed separately under `backend/`. That part does require a Linux host
-> with Docker.
+> resolution via `apt` inside Docker containers) runs server-side under
+> `backend/` and requires a Linux host with Docker. Its setup is covered in
+> [`DEPLOY.md`](DEPLOY.md) (Part 2).
 
 ## Contributing
 

@@ -5,6 +5,18 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.3] — 2026-06-01
+### Changed
+- **All deployment docs consolidated into a single `DEPLOY.md`**: now organized
+  in two parts — the website (Part 1) and the engine/API + systemd (Part 2) — so
+  anyone can follow one file to install the whole project.
+- Root `README.md` trimmed to a project overview that points to `DEPLOY.md`.
+
+### Removed
+- `backend/README.md` (its content moved into `DEPLOY.md`).
+- Command-line (CLI) usage documentation, now that the web UI is the intended
+  way to use the engine (`fetch.py` still works as a script).
+
 ## [v0.5.2] — 2026-06-01
 ### Added
 - **systemd service** (`deploy/deb-downloader-api.service`): run the API
@@ -103,6 +115,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.3
 [v0.5.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.2
 [v0.5.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.1
 [v0.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.0
