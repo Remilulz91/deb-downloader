@@ -5,6 +5,21 @@ Toutes les versions notables de **deb-downloader** sont documentées ici.
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et le projet adhère au [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [v0.3.0] — 2026-06-01
+### Ajouté
+- **Moteur backend — MVP** (`backend/`) : récupération de paquets `.deb` +
+  dépendances via un conteneur Docker jetable, et assemblage d'une archive
+  `.zip` (dépôt local hors-ligne).
+  - `fetch.py` : orchestration Docker (conteneur non privilégié, ressources
+    limitées, timeout), validation stricte des entrées, mode `--dry-run`.
+  - `build_repo.py` : génération de l'index APT (`Packages.gz` via
+    `dpkg-scanpackages`), `INSTALL.txt`, compression `.zip`.
+  - `distros.py` : distributions supportées (Debian 13, Ubuntu 26.04, amd64).
+  - `README.md` du backend + `requirements.txt`.
+- Packaging validé de bout en bout (index + zip) avec paquets de test.
+
+[v0.3.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.3.0
+
 ## [v0.2.0] — 2026-06-01
 ### Ajouté
 - Site multilingue **français / anglais** : bouton de bascule FR/EN,

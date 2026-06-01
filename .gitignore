@@ -13,3 +13,12 @@ desktop.ini
 *.log
 tmp/
 .cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Sorties de travail du moteur
+backend/out/
+*.zip
