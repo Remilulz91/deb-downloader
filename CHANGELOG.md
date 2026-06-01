@@ -5,6 +5,24 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.0] — 2026-06-01
+### Added
+- **HTTP API** (`backend/app.py`, FastAPI): drive the fetch engine over HTTP.
+  - `GET /api/distributions` — supported distro/version pairs + architectures.
+  - `POST /api/fetch` — synchronous fetch, returns the `.zip` archive.
+  - `GET /healthz`, interactive docs at `/docs`.
+- **Web UI** (`backend/ui.html`, served at `/`): pick distribution, version and
+  packages, then download the `.zip` from the browser, with a loading state.
+- **Favicon** (`favicon.svg`): brand-colored SVG icon, linked from `index.html`
+  and `404.html`.
+- `requirements.txt`: FastAPI + uvicorn.
+
+### Notes
+- The API runs the fetch **synchronously** for now; the async Redis/RQ job
+  queue is the next step. Run the API directly on the Docker host.
+- Endpoints tested via FastAPI TestClient (validation, injection blocked,
+  clean 503 when Docker is absent).
+
 ## [v0.4.2] — 2026-06-01
 ### Fixed
 - `DEPLOY.md`: pinned the Docker apt repository to the `trixie` codename (instead
@@ -67,6 +85,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.0
 [v0.4.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.2
 [v0.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.1
 [v0.4.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.0

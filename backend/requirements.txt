@@ -1,9 +1,11 @@
-# MVP : fetch.py et build_repo.py n'utilisent QUE la bibliotheque standard
-# Python (>=3.10) + Docker et dpkg-dev cote hote. Rien a installer ici.
+# HTTP API (app.py). Install on the host that runs Docker + dpkg-dev:
+#   pip install -r requirements.txt
+#   uvicorn app:app --host 0.0.0.0 --port 8000
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# The standalone CLI (fetch.py / build_repo.py) needs no pip dependencies.
 #
-# Pour l'etape suivante (API HTTP + file de jobs), decommentez :
-# fastapi>=0.110
-# uvicorn[standard]>=0.29
+# For the next step (async job queue), add:
 # redis>=5.0
 # rq>=1.16
-# pydantic>=2.6

@@ -35,18 +35,49 @@ working folder. Contents: `debs/*.deb`, `Packages.gz`, `Packages`, `INSTALL.txt`
 4. `build_repo.py` generates the APT index (`dpkg-scanpackages`), writes
    `INSTALL.txt`, and compresses everything into a `.zip`.
 
+## HTTP API + web UI (app.py)
+
+Instead of the CLI, you can drive the engine from a browser. Install the deps
+and start the API on the host that has Docker:
+
+```bash
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+Then open **http://localhost:8000** for the selection UI (pick distro/version,
+type packages, click to download the `.zip`). Interactive API docs are at
+**/docs**.
+
+Endpoints:
+- `GET  /` — minimal selection UI (`ui.html`)
+- `GET  /healthz` — health check
+- `GET  /api/distributions` — supported distro/version pairs + architectures
+- `POST /api/fetch` — body `{"distro","release","arch","packages":[...],"no_recommends"}`;
+  runs the fetch **synchronously** and returns the `.zip`
+
+> The API runs the fetch synchronously, so a request blocks until the archive
+> is ready. The async job-queue version (Redis/RQ) is the next step.
+>
+> Run the API **directly on the host** (not in a container): it needs to call
+> the host's Docker. Do not expose it to the public internet as-is.
+
 ## Security
 Disposable, unprivileged containers (`--cap-drop ALL`,
 `--security-opt no-new-privileges`, `--memory`, `--cpus`, `--pids-limit`),
 a timeout, and strict package-name validation (`^[a-z0-9][a-z0-9+._-]*$`) to
-prevent any injection.
+prevent any injection. The API reuses the same validation and cleans up
+temporary files after each download.
 
 ## Files
-- `fetch.py` — Docker orchestration + CLI (entry point)
+- `app.py` — FastAPI HTTP API + serves the web UI
+- `ui.html` — minimal selection UI (served at `/`)
+- `fetch.py` — Docker orchestration + CLI (engine entry point)
 - `build_repo.py` — APT index + INSTALL.txt + zip (host-side)
 - `distros.py` — supported distributions/versions
-- `requirements.txt` — empty for the MVP (API step later)
+- `requirements.txt` — FastAPI + uvicorn (CLI alone needs no deps)
 
 ## Next step
-Wrap `fetch.py` in a FastAPI API + Redis/RQ job queue
-(see `../ARCHITECTURE.md`, sections 5 and 9).
+Move from synchronous execution to a **Redis/RQ job queue** with a worker
+(see `../ARCHITECTURE.md`, sections 5 and 9), so long fetches don't block the
+HTTP request.
