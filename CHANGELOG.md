@@ -5,6 +5,13 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.1] — 2026-06-01
+### Fixed
+- Backend docs: install the API in a **Python virtual environment** instead of a
+  global `pip install`, which fails on Debian 13 / recent distros with
+  `externally-managed-environment` (PEP 668). Updated `backend/README.md` and
+  the `app.py` header.
+
 ## [v0.5.0] — 2026-06-01
 ### Added
 - **HTTP API** (`backend/app.py`, FastAPI): drive the fetch engine over HTTP.
@@ -85,6 +92,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.1
 [v0.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.0
 [v0.4.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.2
 [v0.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.4.1

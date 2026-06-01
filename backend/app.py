@@ -12,7 +12,11 @@ Synchronous MVP: the request blocks until the .zip is ready (a fetch can take a
 while). The async job-queue version (Redis/RQ) is the next step — see
 ../ARCHITECTURE.md.
 
-Run (on a host with Docker + dpkg-dev):
+Run (on a host with Docker + dpkg-dev). Debian's pip is externally managed
+(PEP 668), so use a virtual environment:
+    sudo apt-get install -y python3-venv
+    python3 -m venv .venv
+    source .venv/bin/activate
     pip install -r requirements.txt
     uvicorn app:app --host 0.0.0.0 --port 8000
 Then open http://localhost:8000  (interactive API docs at /docs).

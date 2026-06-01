@@ -38,10 +38,20 @@ working folder. Contents: `debs/*.deb`, `Packages.gz`, `Packages`, `INSTALL.txt`
 ## HTTP API + web UI (app.py)
 
 Instead of the CLI, you can drive the engine from a browser. Install the deps
-and start the API on the host that has Docker:
+and start the API on the host that has Docker.
+
+On Debian 13 (and other recent distros) `pip` refuses to install system-wide
+(PEP 668, "externally-managed-environment"), so use a **virtual environment**:
 
 ```bash
+# One-time setup
+sudo apt-get install -y python3-venv
+cd /var/www/deb-downloader/backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+
+# Start the API (in a new shell, re-run "source .venv/bin/activate" first)
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
