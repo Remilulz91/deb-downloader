@@ -1,0 +1,25 @@
+# Configuration des notes de release générées automatiquement par GitHub.
+# Quand vous cliquez sur "Generate release notes" (ou via l'API), GitHub
+# classe les PR fusionnées selon leurs labels dans les catégories ci-dessous.
+# Doc : https://docs.github.com/repositories/releasing-projects-on-github/automatically-generated-release-notes
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - duplicate
+      - invalid
+  categories:
+    - title: ✨ Nouveautés
+      labels:
+        - feature
+        - enhancement
+    - title: 🐞 Corrections de bugs
+      labels:
+        - bug
+        - fix
+    - title: 📚 Documentation
+      labels:
+        - documentation
+    - title: 🔧 Autres changements
+      labels:
+        - "*"

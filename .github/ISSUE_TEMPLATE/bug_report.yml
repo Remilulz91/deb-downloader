@@ -1,0 +1,60 @@
+name: 🐞 Signaler un bug
+description: Signaler un dysfonctionnement de deb-downloader
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de contribuer ! Décrivez le problème le plus précisément possible.
+        Rappel : seul l'auteur (Remilulz91) publie les versions officielles.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du bug
+      description: Que se passe-t-il ? Qu'attendiez-vous à la place ?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      placeholder: |
+        1. Aller sur …
+        2. Choisir …
+        3. Cliquer sur …
+        4. Voir l'erreur
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version de deb-downloader
+      description: Visible dans la bannière du site (ex. v0.1.0)
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Distribution concernée (si applicable)
+      options:
+        - Non applicable / site uniquement
+        - Debian 13
+        - Ubuntu 26.04
+        - Autre (préciser ci-dessous)
+    validations:
+      required: false
+  - type: input
+    id: env
+    attributes:
+      label: Navigateur / OS
+      placeholder: "Firefox 128 sur Windows 11"
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Captures d'écran / logs / contexte
+    validations:
+      required: false

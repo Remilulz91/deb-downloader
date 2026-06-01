@@ -3,131 +3,97 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>deb-downloader — Récupérez vos paquets .deb + dépendances</title>
-<meta name="description" content="deb-downloader : récupérez un paquet Debian/Ubuntu et toutes ses dépendances, prêts pour une installation hors-ligne / air-gapped, sans ligne de commande." />
+<title>deb-downloader</title>
+<meta name="description" id="meta-desc" content="" />
 <meta name="author" content="Remilulz91" />
 <meta name="robots" content="index, follow" />
-<!-- Open Graph -->
 <meta property="og:title" content="deb-downloader" />
-<meta property="og:description" content="Récupérez un paquet Debian/Ubuntu et toutes ses dépendances, prêts pour une installation hors-ligne." />
 <meta property="og:type" content="website" />
 <style>
-  /* ============================================================
-     deb-downloader — feuille de style (intégrée pour un site
-     100% statique, déployable par simple glisser-déposer)
-     ============================================================ */
   :root {
-    --bg:        #0d1117;
-    --bg-soft:   #161b22;
-    --bg-card:   #1b222c;
-    --border:    #2a3340;
-    --text:      #e6edf3;
-    --text-dim:  #9aa7b4;
-    --accent:    #d70a53;   /* rouge Debian-ish */
-    --accent-2:  #e95420;   /* orange Ubuntu-ish */
-    --ok:        #2ea043;
-    --warn:      #d29922;
-    --info:      #388bfd;
-    --radius:    14px;
-    --shadow:    0 8px 30px rgba(0,0,0,.35);
-    --maxw:      980px;
+    --bg:#0d1117; --bg-soft:#161b22; --bg-card:#1b222c; --border:#2a3340;
+    --text:#e6edf3; --text-dim:#9aa7b4; --accent:#d70a53; --accent-2:#e95420;
+    --ok:#2ea043; --warn:#d29922; --info:#388bfd;
+    --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.35); --maxw:980px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(1200px 600px at 70% -10%, #1a2330 0%, var(--bg) 55%);
-    color: var(--text);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 70% -10%, #1a2330 0%, var(--bg) 55%);
+    color:var(--text); line-height:1.6; -webkit-font-smoothing:antialiased;
   }
-  a { color: inherit; }
-  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
-
-  /* ---------- Header ---------- */
-  header {
-    position: sticky; top: 0; z-index: 50;
-    backdrop-filter: blur(10px);
-    background: rgba(13,17,23,.72);
-    border-bottom: 1px solid var(--border);
-  }
-  .nav { display: flex; align-items: center; justify-content: space-between; height: 62px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; letter-spacing: .2px; }
-  .brand .dot { width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 12px var(--accent); }
-  .nav-links { display: flex; gap: 22px; font-size: .95rem; }
-  .nav-links a { color: var(--text-dim); text-decoration: none; transition: color .15s; }
-  .nav-links a:hover { color: var(--text); }
-  @media (max-width: 640px){ .nav-links { display:none; } }
-
-  /* ---------- Hero ---------- */
-  .hero { padding: 78px 0 40px; text-align: center; }
-  .hero h1 { font-size: clamp(2.1rem, 5vw, 3.3rem); line-height: 1.1; font-weight: 800; }
-  .hero h1 .grad { background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero p.lead { max-width: 680px; margin: 18px auto 0; font-size: 1.18rem; color: var(--text-dim); }
-  .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 9px;
-    padding: 12px 22px; border-radius: 10px; font-weight: 600; font-size: 1rem;
-    text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .12s, background .15s, border .15s;
-  }
-  .btn:hover { transform: translateY(-2px); }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: 0 6px 20px rgba(215,10,83,.35); }
-  .btn-ghost { background: var(--bg-card); color: var(--text); border-color: var(--border); }
-
-  /* ---------- Version banner ---------- */
-  .version-banner {
-    margin: 26px auto 0; max-width: 720px;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    background: var(--bg-card); box-shadow: var(--shadow);
-    padding: 20px 24px; text-align: left;
-    display: flex; align-items: center; gap: 18px;
-    transition: border-color .25s;
-  }
-  .vb-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; background: var(--bg-soft); }
-  .vb-body { flex: 1; min-width: 0; }
-  .vb-title { font-weight: 700; font-size: 1.05rem; }
-  .vb-sub { color: var(--text-dim); font-size: .92rem; margin-top: 2px; }
-  .vb-sub code { background: var(--bg-soft); padding: 1px 7px; border-radius: 6px; font-size: .85rem; }
-  .vb-action { flex: none; }
-  .version-banner.is-ok    { border-color: var(--ok); }
-  .version-banner.is-ok    .vb-icon { color: var(--ok); }
-  .version-banner.is-warn  { border-color: var(--warn); }
-  .version-banner.is-warn  .vb-icon { color: var(--warn); }
-  .version-banner.is-info  { border-color: var(--info); }
-  .version-banner.is-info  .vb-icon { color: var(--info); }
-  .version-banner.is-loading .vb-icon { color: var(--text-dim); }
-  .spin { animation: spin 1s linear infinite; display:inline-block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @media (max-width: 560px){ .version-banner { flex-direction: column; align-items: flex-start; } .vb-action{ width:100%; } .vb-action .btn{ width:100%; justify-content:center; } }
-
-  /* ---------- Sections ---------- */
-  section.block { padding: 56px 0; border-top: 1px solid var(--border); }
-  section.block h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 8px; }
-  section.block .sub { color: var(--text-dim); margin-bottom: 30px; max-width: 640px; }
-
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
-  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
-  .card .ico { font-size: 1.6rem; margin-bottom: 10px; }
-  .card h3 { font-size: 1.1rem; margin-bottom: 6px; }
-  .card p { color: var(--text-dim); font-size: .95rem; }
-
-  /* Steps */
-  ol.steps { list-style: none; counter-reset: s; display: grid; gap: 14px; }
-  ol.steps li { counter-increment: s; position: relative; padding: 16px 18px 16px 60px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
-  ol.steps li::before { content: counter(s); position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 700; display: grid; place-items: center; }
+  a { color:inherit; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 22px; }
+  header { position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
+    background:rgba(13,17,23,.72); border-bottom:1px solid var(--border); }
+  .nav { display:flex; align-items:center; justify-content:space-between; height:62px; gap:14px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.15rem; letter-spacing:.2px; }
+  .brand .dot { width:12px; height:12px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 0 12px var(--accent); }
+  .nav-right { display:flex; align-items:center; gap:22px; }
+  .nav-links { display:flex; gap:22px; font-size:.95rem; }
+  .nav-links a { color:var(--text-dim); text-decoration:none; transition:color .15s; }
+  .nav-links a:hover { color:var(--text); }
+  .lang { display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .lang button { background:transparent; color:var(--text-dim); border:none; cursor:pointer;
+    padding:6px 11px; font-size:.85rem; font-weight:700; transition:background .15s,color .15s; }
+  .lang button.active { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; }
+  @media (max-width:680px){ .nav-links { display:none; } }
+  .hero { padding:78px 0 40px; text-align:center; }
+  .hero h1 { font-size:clamp(2.1rem,5vw,3.3rem); line-height:1.1; font-weight:800; }
+  .hero h1 .grad { background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero p.lead { max-width:680px; margin:18px auto 0; font-size:1.18rem; color:var(--text-dim); }
+  .cta-row { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:30px; }
+  .btn { display:inline-flex; align-items:center; gap:9px; padding:12px 22px; border-radius:10px;
+    font-weight:600; font-size:1rem; text-decoration:none; border:1px solid transparent; cursor:pointer;
+    transition:transform .12s,background .15s,border .15s; }
+  .btn:hover { transform:translateY(-2px); }
+  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff;
+    box-shadow:0 6px 20px rgba(215,10,83,.35); }
+  .btn-ghost { background:var(--bg-card); color:var(--text); border-color:var(--border); }
+  .version-banner { margin:26px auto 0; max-width:720px; border:1px solid var(--border);
+    border-radius:var(--radius); background:var(--bg-card); box-shadow:var(--shadow);
+    padding:20px 24px; text-align:left; display:flex; align-items:center; gap:18px; transition:border-color .25s; }
+  .vb-icon { flex:none; width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+    font-size:1.4rem; background:var(--bg-soft); }
+  .vb-body { flex:1; min-width:0; }
+  .vb-title { font-weight:700; font-size:1.05rem; }
+  .vb-sub { color:var(--text-dim); font-size:.92rem; margin-top:2px; }
+  .vb-sub code { background:var(--bg-soft); padding:1px 7px; border-radius:6px; font-size:.85rem; }
+  .vb-action { flex:none; }
+  .version-banner.is-ok { border-color:var(--ok); } .version-banner.is-ok .vb-icon { color:var(--ok); }
+  .version-banner.is-warn { border-color:var(--warn); } .version-banner.is-warn .vb-icon { color:var(--warn); }
+  .version-banner.is-info { border-color:var(--info); } .version-banner.is-info .vb-icon { color:var(--info); }
+  .version-banner.is-loading .vb-icon { color:var(--text-dim); }
+  .spin { animation:spin 1s linear infinite; display:inline-block; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @media (max-width:560px){ .version-banner { flex-direction:column; align-items:flex-start; }
+    .vb-action { width:100%; } .vb-action .btn { width:100%; justify-content:center; } }
+  section.block { padding:56px 0; border-top:1px solid var(--border); }
+  section.block h2 { font-size:1.7rem; font-weight:800; margin-bottom:8px; }
+  section.block .sub { color:var(--text-dim); margin-bottom:30px; max-width:640px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:18px; }
+  .card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:22px; }
+  .card .ico { font-size:1.6rem; margin-bottom:10px; }
+  .card h3 { font-size:1.1rem; margin-bottom:6px; }
+  .card p { color:var(--text-dim); font-size:.95rem; }
+  ol.steps { list-style:none; counter-reset:s; display:grid; gap:14px; }
+  ol.steps li { counter-increment:s; position:relative; padding:16px 18px 16px 60px;
+    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); }
+  ol.steps li::before { content:counter(s); position:absolute; left:16px; top:50%; transform:translateY(-50%);
+    width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:#fff; font-weight:700; display:grid; place-items:center; }
   ol.steps li b { display:block; }
-  ol.steps li span { color: var(--text-dim); font-size: .93rem; }
-
-  .note { background: var(--bg-soft); border: 1px solid var(--border); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; color: var(--text-dim); font-size: .95rem; }
-  .note b { color: var(--text); }
-
-  /* ---------- Footer ---------- */
-  footer { border-top: 1px solid var(--border); padding: 34px 0 60px; color: var(--text-dim); font-size: .9rem; }
-  footer .frow { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
-  footer a { color: var(--text-dim); }
-  footer a:hover { color: var(--text); }
-  .copyright { font-size: .85rem; }
-  .copyright b { color: var(--text); }
+  ol.steps li span { color:var(--text-dim); font-size:.93rem; }
+  .note { background:var(--bg-soft); border:1px solid var(--border); border-left:4px solid var(--info);
+    border-radius:10px; padding:16px 18px; color:var(--text-dim); font-size:.95rem; }
+  .note b { color:var(--text); }
+  footer { border-top:1px solid var(--border); padding:34px 0 60px; color:var(--text-dim); font-size:.9rem; }
+  footer .frow { display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap; align-items:center; }
+  footer a { color:var(--text-dim); } footer a:hover { color:var(--text); }
+  .copyright { font-size:.85rem; } .copyright b { color:var(--text); }
 </style>
 </head>
 <body>
@@ -135,79 +101,74 @@
 <header>
   <div class="wrap nav">
     <div class="brand"><span class="dot"></span> deb-downloader</div>
-    <nav class="nav-links">
-      <a href="#fonctions">Fonctions</a>
-      <a href="#comment">Comment ça marche</a>
-      <a href="#contribuer">Contribuer</a>
-      <a id="nav-gh" href="#" target="_blank" rel="noopener">GitHub</a>
-    </nav>
+    <div class="nav-right">
+      <nav class="nav-links">
+        <a href="#fonctions" data-i18n="nav.features"></a>
+        <a href="#comment" data-i18n="nav.how"></a>
+        <a href="#contribuer" data-i18n="nav.contribute"></a>
+        <a id="nav-gh" href="#" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div class="lang" role="group" aria-label="Language">
+        <button data-lang="fr" type="button">FR</button>
+        <button data-lang="en" type="button">EN</button>
+      </div>
+    </div>
   </div>
 </header>
 
 <main>
-  <!-- HERO -->
   <section class="hero wrap">
-    <h1>Vos paquets <span class="grad">.deb</span><br/>et toutes leurs dépendances</h1>
-    <p class="lead">
-      Choisissez votre distribution, tapez le nom d'un paquet, récupérez l'archive complète
-      prête pour une installation <b>hors-ligne / air-gapped</b>. Sans toucher à la ligne de commande.
-    </p>
+    <h1 data-i18n="hero.h1"></h1>
+    <p class="lead" data-i18n="hero.lead"></p>
     <div class="cta-row">
-      <a id="cta-download" class="btn btn-primary" href="#" target="_blank" rel="noopener">⬇️ Télécharger la dernière version</a>
-      <a class="btn btn-ghost" href="#comment">Comment ça marche</a>
+      <a id="cta-download" class="btn btn-primary" href="#" target="_blank" rel="noopener" data-i18n="hero.download"></a>
+      <a class="btn btn-ghost" href="#comment" data-i18n="hero.howbtn"></a>
     </div>
-
-    <!-- BANNIÈRE DE VERSION (remplie par JS) -->
     <div id="version-banner" class="version-banner is-loading" role="status" aria-live="polite">
       <div class="vb-icon"><span class="spin">⏳</span></div>
       <div class="vb-body">
-        <div class="vb-title" id="vb-title">Vérification de la version…</div>
-        <div class="vb-sub" id="vb-sub">Cette copie : <code id="vb-current">v0.0.0</code></div>
+        <div class="vb-title" id="vb-title"></div>
+        <div class="vb-sub" id="vb-sub"></div>
       </div>
       <div class="vb-action" id="vb-action"></div>
     </div>
   </section>
 
-  <!-- FONCTIONS -->
   <section class="block" id="fonctions">
     <div class="wrap">
-      <h2>Ce que fait deb-downloader</h2>
-      <p class="sub">L'outil délègue la résolution des dépendances à <code>apt</code> lui-même, dans un conteneur de la distribution cible — donc le résultat correspond <b>exactement</b> à votre version.</p>
+      <h2 data-i18n="features.h2"></h2>
+      <p class="sub" data-i18n="features.sub"></p>
       <div class="grid">
-        <div class="card"><div class="ico">📦</div><h3>Paquet + dépendances</h3><p>Récupère le paquet demandé et l'arbre complet de ses dépendances, sans rien oublier.</p></div>
-        <div class="card"><div class="ico">🐧</div><h3>Debian &amp; Ubuntu</h3><p>Sélection de la distribution et de la version (ex. Ubuntu 24.04, Debian 12) pour des deps exactes.</p></div>
-        <div class="card"><div class="ico">✈️</div><h3>Hors-ligne / air-gapped</h3><p>Sortie sous forme de mini-dépôt local (.deb + index) utilisable sans connexion.</p></div>
-        <div class="card"><div class="ico">🖱️</div><h3>Zéro ligne de commande</h3><p>Une interface simple : on choisit, on tape, on télécharge. Pas besoin d'être expert.</p></div>
+        <div class="card"><div class="ico">📦</div><h3 data-i18n="feat1.t"></h3><p data-i18n="feat1.d"></p></div>
+        <div class="card"><div class="ico">🐧</div><h3 data-i18n="feat2.t"></h3><p data-i18n="feat2.d"></p></div>
+        <div class="card"><div class="ico">✈️</div><h3 data-i18n="feat3.t"></h3><p data-i18n="feat3.d"></p></div>
+        <div class="card"><div class="ico">🖱️</div><h3 data-i18n="feat4.t"></h3><p data-i18n="feat4.d"></p></div>
       </div>
     </div>
   </section>
 
-  <!-- COMMENT -->
   <section class="block" id="comment">
     <div class="wrap">
-      <h2>Comment ça marche</h2>
-      <p class="sub">Quatre étapes, du choix du paquet à l'archive prête à l'emploi.</p>
+      <h2 data-i18n="how.h2"></h2>
+      <p class="sub" data-i18n="how.sub"></p>
       <ol class="steps">
-        <li><b>1 · Choisissez votre distribution</b><span>Debian ou Ubuntu, puis la version précise (la résolution des dépendances en dépend).</span></li>
-        <li><b>2 · Saisissez le(s) paquet(s)</b><span>Par exemple <code>nginx</code>. Plusieurs paquets possibles.</span></li>
-        <li><b>3 · Résolution automatique</b><span>Le moteur calcule l'arbre complet des dépendances via <code>apt</code> dans un conteneur de la distrib cible.</span></li>
-        <li><b>4 · Téléchargez l'archive</b><span>Un dossier de <code>.deb</code> + index, prêt pour une installation hors-ligne.</span></li>
+        <li><b data-i18n="step1.t"></b><span data-i18n="step1.d"></span></li>
+        <li><b data-i18n="step2.t"></b><span data-i18n="step2.d"></span></li>
+        <li><b data-i18n="step3.t"></b><span data-i18n="step3.d"></span></li>
+        <li><b data-i18n="step4.t"></b><span data-i18n="step4.d"></span></li>
       </ol>
-      <div class="note" style="margin-top:22px;">
-        <b>À noter :</b> le moteur de récupération s'exécute côté serveur (conteneurs Docker isolés). Cette page est la vitrine et l'indicateur de version du projet.
-      </div>
+      <div class="note" style="margin-top:22px;" data-i18n="how.note"></div>
     </div>
   </section>
 
-  <!-- CONTRIBUER -->
   <section class="block" id="contribuer">
     <div class="wrap">
-      <h2>Contribuer &amp; signaler un bug</h2>
-      <p class="sub">Le projet est ouvert aux retours de la communauté, dans le respect du copyright.</p>
+      <h2 data-i18n="contrib.h2"></h2>
+      <p class="sub" data-i18n="contrib.sub"></p>
       <div class="grid">
-        <div class="card"><div class="ico">🐞</div><h3>Signaler un bug</h3><p>Ouvrez une <a id="link-issues" href="#" target="_blank" rel="noopener" style="color:var(--info)">issue sur GitHub</a> en décrivant le problème, votre distrib et la version utilisée.</p></div>
-        <div class="card"><div class="ico">💡</div><h3>Proposer une idée</h3><p>Les suggestions de fonctionnalités sont les bienvenues via les issues.</p></div>
-        <div class="card"><div class="ico">🔒</div><h3>Mises à jour officielles</h3><p>Seul l'auteur (<b>Remilulz91</b>) publie les versions officielles. C'est la seule source fiable.</p></div>
+        <div class="card"><div class="ico">🐞</div><h3 data-i18n="c1.t"></h3><p data-i18n="c1.d"></p></div>
+        <div class="card"><div class="ico">💡</div><h3 data-i18n="c2.t"></h3><p data-i18n="c2.d"></p></div>
+        <div class="card"><div class="ico">🔒</div><h3 data-i18n="c3.t"></h3><p data-i18n="c3.d"></p></div>
       </div>
     </div>
   </section>
@@ -215,108 +176,184 @@
 
 <footer>
   <div class="wrap frow">
-    <div class="copyright">
-      © <span id="year">2026</span> <b>Remilulz91</b> — deb-downloader. Tous droits réservés.<br/>
-      Projet sous copyright. Réutilisation, redistribution ou appropriation interdites sans autorisation écrite.
-    </div>
-    <div>
-      <a id="footer-gh" href="#" target="_blank" rel="noopener">Dépôt GitHub →</a>
-    </div>
+    <div class="copyright" data-i18n="footer.copyright"></div>
+    <div><a id="footer-gh" href="#" target="_blank" rel="noopener" data-i18n="footer.repo"></a></div>
   </div>
 </footer>
 
 <script>
-/* ============================================================
-   deb-downloader — logique de l'indicateur de version
-   ------------------------------------------------------------
-   100% navigateur, aucun backend requis. Interroge l'API
-   publique GitHub Releases et compare à la version de CETTE copie.
+/* deb-downloader — i18n (FR/EN) + indicateur de version. 100% navigateur.
+   A CHAQUE RELEASE : mettre a jour CONFIG.version. */
+var CONFIG = { owner:"Remilulz91", repo:"deb-downloader", version:"v0.2.0" };
+var GH_REPO_URL   = "https://github.com/" + CONFIG.owner + "/" + CONFIG.repo;
+var GH_API_LATEST = "https://api.github.com/repos/" + CONFIG.owner + "/" + CONFIG.repo + "/releases/latest";
 
-   👉 À CHAQUE NOUVELLE RELEASE : mettez à jour CONFIG.version
-      avec le tag que vous publiez (ex. "v0.2.0"), puis publiez.
-   ============================================================ */
-const CONFIG = {
-  owner:   "Remilulz91",
-  repo:    "deb-downloader",
-  // Version embarquée dans CETTE copie déployée du site :
-  version: "v0.1.0"
+var I18N = {
+  fr: {
+    "meta.desc":"deb-downloader : récupérez un paquet Debian/Ubuntu et toutes ses dépendances, prêts pour une installation hors-ligne, sans ligne de commande.",
+    "nav.features":"Fonctions", "nav.how":"Comment ça marche", "nav.contribute":"Contribuer",
+    "hero.h1":"Vos paquets <span class='grad'>.deb</span><br/>et toutes leurs dépendances",
+    "hero.lead":"Choisissez votre distribution, tapez le nom d'un paquet, récupérez l'archive complète prête pour une installation <b>hors-ligne / air-gapped</b>. Sans toucher à la ligne de commande.",
+    "hero.download":"⬇️ Télécharger la dernière version", "hero.howbtn":"Comment ça marche",
+    "features.h2":"Ce que fait deb-downloader",
+    "features.sub":"L'outil délègue la résolution des dépendances à apt lui-même, dans un conteneur de la distribution cible — le résultat correspond exactement à votre version.",
+    "feat1.t":"Paquet + dépendances","feat1.d":"Récupère le paquet demandé et l'arbre complet de ses dépendances, sans rien oublier.",
+    "feat2.t":"Debian & Ubuntu","feat2.d":"Sélection de la distribution et de la version (ex. Debian 13, Ubuntu 26.04) pour des dépendances exactes.",
+    "feat3.t":"Hors-ligne / air-gapped","feat3.d":"Sortie en archive .zip contenant un mini-dépôt local utilisable sans connexion.",
+    "feat4.t":"Zéro ligne de commande","feat4.d":"Une interface simple : on choisit, on tape, on télécharge. Pas besoin d'être expert.",
+    "how.h2":"Comment ça marche","how.sub":"Quatre étapes, du choix du paquet à l'archive prête à l'emploi.",
+    "step1.t":"1 · Choisissez votre distribution","step1.d":"Debian ou Ubuntu, puis la version précise (la résolution des dépendances en dépend).",
+    "step2.t":"2 · Saisissez le(s) paquet(s)","step2.d":"Par exemple nginx. Plusieurs paquets possibles.",
+    "step3.t":"3 · Résolution automatique","step3.d":"Le moteur calcule l'arbre complet des dépendances via apt dans un conteneur de la distrib cible.",
+    "step4.t":"4 · Téléchargez le .zip","step4.d":"Un clic : l'archive .zip (dépôt local prêt à l'emploi) se télécharge sur votre machine.",
+    "how.note":"<b>À noter :</b> le moteur de récupération s'exécute côté serveur (conteneurs Docker isolés). Cette page est la vitrine et l'indicateur de version du projet.",
+    "contrib.h2":"Contribuer & signaler un bug","contrib.sub":"Le projet est ouvert aux retours de la communauté, dans le respect du copyright.",
+    "c1.t":"Signaler un bug","c1.d":"Ouvrez une issue sur GitHub en décrivant le problème, votre distrib et la version utilisée.",
+    "c2.t":"Proposer une idée","c2.d":"Les suggestions de fonctionnalités sont les bienvenues via les issues.",
+    "c3.t":"Mises à jour officielles","c3.d":"Seul l'auteur (Remilulz91) publie les versions officielles. C'est la seule source fiable.",
+    "footer.copyright":"© <span id='year'></span> <b>Remilulz91</b> — deb-downloader. Tous droits réservés.<br/>Projet sous copyright. Réutilisation, redistribution ou appropriation interdites sans autorisation écrite.",
+    "footer.repo":"Dépôt GitHub →",
+    "vb.checking":"Vérification de la version…", "vb.thiscopy":"Cette copie :", "vb.latest":"Dernière publiée :",
+    "vb.ok.t":"Vous êtes à la dernière version", "vb.notes":"Notes de version",
+    "vb.warn.t":"Une nouvelle version est disponible", "vb.warn.btn":"Mettre à jour vers {latest}",
+    "vb.none.t":"Aucune version publiée pour le moment", "vb.seerepo":"Voir le dépôt",
+    "vb.err.t":"Impossible de vérifier la version", "vb.err.sub":"Cette copie : <code>{v}</code>. Vérifiez manuellement les <a href='{rel}' target='_blank' rel='noopener' style='color:var(--info)'>releases</a>."
+  },
+  en: {
+    "meta.desc":"deb-downloader: grab a Debian/Ubuntu package and all its dependencies, ready for offline installation, with no command line.",
+    "nav.features":"Features", "nav.how":"How it works", "nav.contribute":"Contribute",
+    "hero.h1":"Your <span class='grad'>.deb</span> packages<br/>and all their dependencies",
+    "hero.lead":"Pick your distribution, type a package name, get the full archive ready for an <b>offline / air-gapped</b> install. Without touching the command line.",
+    "hero.download":"⬇️ Download the latest version", "hero.howbtn":"How it works",
+    "features.h2":"What deb-downloader does",
+    "features.sub":"The tool delegates dependency resolution to apt itself, inside a container of the target distribution — so the result matches your version exactly.",
+    "feat1.t":"Package + dependencies","feat1.d":"Fetches the requested package and its full dependency tree, leaving nothing out.",
+    "feat2.t":"Debian & Ubuntu","feat2.d":"Choose the distribution and version (e.g. Debian 13, Ubuntu 26.04) for exact dependencies.",
+    "feat3.t":"Offline / air-gapped","feat3.d":"Output is a .zip archive containing a small local repository usable without a connection.",
+    "feat4.t":"Zero command line","feat4.d":"A simple interface: choose, type, download. No expertise required.",
+    "how.h2":"How it works","how.sub":"Four steps, from picking the package to a ready-to-use archive.",
+    "step1.t":"1 · Pick your distribution","step1.d":"Debian or Ubuntu, then the exact version (dependency resolution depends on it).",
+    "step2.t":"2 · Enter the package(s)","step2.d":"For example nginx. Multiple packages are supported.",
+    "step3.t":"3 · Automatic resolution","step3.d":"The engine computes the full dependency tree via apt inside a container of the target distro.",
+    "step4.t":"4 · Download the .zip","step4.d":"One click: the .zip archive (a ready-to-use local repo) downloads to your machine.",
+    "how.note":"<b>Note:</b> the fetch engine runs server-side (isolated Docker containers). This page is the project's landing page and version indicator.",
+    "contrib.h2":"Contribute & report a bug","contrib.sub":"The project welcomes community feedback, within the bounds of its copyright.",
+    "c1.t":"Report a bug","c1.d":"Open a GitHub issue describing the problem, your distro and the version used.",
+    "c2.t":"Suggest an idea","c2.d":"Feature suggestions are welcome through issues.",
+    "c3.t":"Official updates","c3.d":"Only the author (Remilulz91) publishes official releases. It is the only reliable source.",
+    "footer.copyright":"© <span id='year'></span> <b>Remilulz91</b> — deb-downloader. All rights reserved.<br/>Copyrighted project. Reuse, redistribution or appropriation prohibited without written permission.",
+    "footer.repo":"GitHub repository →",
+    "vb.checking":"Checking version…", "vb.thiscopy":"This copy:", "vb.latest":"Latest published:",
+    "vb.ok.t":"You are on the latest version", "vb.notes":"Release notes",
+    "vb.warn.t":"A new version is available", "vb.warn.btn":"Update to {latest}",
+    "vb.none.t":"No version published yet", "vb.seerepo":"View the repository",
+    "vb.err.t":"Unable to check the version", "vb.err.sub":"This copy: <code>{v}</code>. Check the <a href='{rel}' target='_blank' rel='noopener' style='color:var(--info)'>releases</a> manually."
+  }
 };
 
-const GH_REPO_URL = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
-const GH_API_LATEST = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/releases/latest`;
+var currentLang = "fr";
+var lastResult  = null;
 
-/* Liens statiques vers GitHub */
-document.getElementById("year").textContent = new Date().getFullYear();
-document.getElementById("vb-current").textContent = CONFIG.version;
-[["nav-gh", GH_REPO_URL],
- ["footer-gh", GH_REPO_URL],
- ["link-issues", GH_REPO_URL + "/issues"],
- ["cta-download", GH_REPO_URL + "/releases/latest"]
-].forEach(([id, url]) => { const el = document.getElementById(id); if (el) el.href = url; });
+function t(key){ return (I18N[currentLang] && I18N[currentLang][key]) || I18N.fr[key] || key; }
 
-/* Compare deux versions sémantiques "vX.Y.Z".
-   Retourne 1 si a>b, -1 si a<b, 0 si égales. */
-function compareVersions(a, b) {
-  const clean = v => String(v).trim().replace(/^v/i, "").split("-")[0];
-  const pa = clean(a).split(".").map(n => parseInt(n, 10) || 0);
-  const pb = clean(b).split(".").map(n => parseInt(n, 10) || 0);
-  const len = Math.max(pa.length, pb.length);
-  for (let i = 0; i < len; i++) {
-    const x = pa[i] || 0, y = pb[i] || 0;
-    if (x > y) return 1;
-    if (x < y) return -1;
-  }
+function applyI18n(){
+  document.documentElement.lang = currentLang;
+  document.getElementById("meta-desc").setAttribute("content", t("meta.desc"));
+  var nodes = document.querySelectorAll("[data-i18n]");
+  for (var i=0;i<nodes.length;i++){ nodes[i].innerHTML = t(nodes[i].getAttribute("data-i18n")); }
+  var y = document.getElementById("year"); if (y) y.textContent = new Date().getFullYear();
+  var btns = document.querySelectorAll(".lang button");
+  for (var j=0;j<btns.length;j++){ btns[j].classList.toggle("active", btns[j].getAttribute("data-lang") === currentLang); }
+  renderBanner();
+}
+
+function setLang(lang){
+  currentLang = (lang === "en") ? "en" : "fr";
+  try { localStorage.setItem("ddl_lang", currentLang); } catch(e){}
+  applyI18n();
+}
+
+(function(){
+  var links = [["nav-gh", GH_REPO_URL],["footer-gh", GH_REPO_URL],["cta-download", GH_REPO_URL + "/releases/latest"]];
+  for (var i=0;i<links.length;i++){ var el = document.getElementById(links[i][0]); if (el) el.href = links[i][1]; }
+})();
+
+function compareVersions(a, b){
+  var clean = function(v){ return String(v).trim().replace(/^v/i,"").split("-")[0]; };
+  var pa = clean(a).split(".").map(function(n){ return parseInt(n,10)||0; });
+  var pb = clean(b).split(".").map(function(n){ return parseInt(n,10)||0; });
+  var len = Math.max(pa.length, pb.length);
+  for (var i=0;i<len;i++){ var x=pa[i]||0, y=pb[i]||0; if(x>y)return 1; if(x<y)return -1; }
   return 0;
 }
 
-function setBanner(state, icon, title, subHTML, actionHTML) {
-  const b = document.getElementById("version-banner");
-  b.className = "version-banner " + state;
-  b.querySelector(".vb-icon").innerHTML = icon;
-  document.getElementById("vb-title").innerHTML = title;
-  document.getElementById("vb-sub").innerHTML = subHTML;
-  document.getElementById("vb-action").innerHTML = actionHTML || "";
-}
-
-async function checkVersion() {
-  try {
-    const res = await fetch(GH_API_LATEST, { headers: { "Accept": "application/vnd.github+json" } });
-
-    if (res.status === 404) {
-      // Aucune release publiée pour l'instant
-      setBanner("is-info", "ℹ️", "Aucune version publiée pour le moment",
-        `Cette copie : <code>${CONFIG.version}</code>`,
-        `<a class="btn btn-ghost" href="${GH_REPO_URL}" target="_blank" rel="noopener">Voir le dépôt</a>`);
-      return;
-    }
-    if (!res.ok) throw new Error("HTTP " + res.status);
-
-    const data = await res.json();
-    const latest = data.tag_name || data.name;
-    if (!latest) throw new Error("Tag introuvable");
-
-    const cmp = compareVersions(CONFIG.version, latest);
-    const relUrl = data.html_url || (GH_REPO_URL + "/releases/latest");
-
-    if (cmp >= 0) {
-      // À jour (ou en avance, ex. build de dev)
-      setBanner("is-ok", "✅", "Vous êtes à la dernière version",
-        `Cette copie : <code>${CONFIG.version}</code> · Dernière publiée : <code>${latest}</code>`,
-        `<a class="btn btn-ghost" href="${GH_REPO_URL}/releases" target="_blank" rel="noopener">Notes de version</a>`);
-    } else {
-      // Une mise à jour est disponible
-      setBanner("is-warn", "⚠️", "Une nouvelle version est disponible",
-        `Cette copie : <code>${CONFIG.version}</code> · Dernière publiée : <code>${latest}</code>`,
-        `<a class="btn btn-primary" href="${relUrl}" target="_blank" rel="noopener">Mettre à jour vers ${latest}</a>`);
-    }
-  } catch (err) {
-    setBanner("is-info", "❓", "Impossible de vérifier la version",
-      `Cette copie : <code>${CONFIG.version}</code>. Vérifiez manuellement les <a href="${GH_REPO_URL}/releases" target="_blank" rel="noopener" style="color:var(--info)">releases</a>.`,
-      "");
+function renderBanner(){
+  var box=document.getElementById("version-banner");
+  var icon=document.querySelector("#version-banner .vb-icon");
+  var title=document.getElementById("vb-title");
+  var sub=document.getElementById("vb-sub");
+  var action=document.getElementById("vb-action");
+  if (!lastResult){
+    box.className="version-banner is-loading";
+    icon.innerHTML='<span class="spin">⏳</span>';
+    title.textContent=t("vb.checking");
+    sub.innerHTML=t("vb.thiscopy")+" <code>"+CONFIG.version+"</code>";
+    action.innerHTML=""; return;
+  }
+  var r=lastResult;
+  if (r.state==="ok"){
+    box.className="version-banner is-ok"; icon.textContent="✅";
+    title.textContent=t("vb.ok.t");
+    sub.innerHTML=t("vb.thiscopy")+" <code>"+CONFIG.version+"</code> · "+t("vb.latest")+" <code>"+r.latest+"</code>";
+    action.innerHTML='<a class="btn btn-ghost" href="'+GH_REPO_URL+'/releases" target="_blank" rel="noopener">'+t("vb.notes")+'</a>';
+  } else if (r.state==="warn"){
+    box.className="version-banner is-warn"; icon.textContent="⚠️";
+    title.textContent=t("vb.warn.t");
+    sub.innerHTML=t("vb.thiscopy")+" <code>"+CONFIG.version+"</code> · "+t("vb.latest")+" <code>"+r.latest+"</code>";
+    action.innerHTML='<a class="btn btn-primary" href="'+r.url+'" target="_blank" rel="noopener">'+t("vb.warn.btn").replace("{latest}", r.latest)+'</a>';
+  } else if (r.state==="none"){
+    box.className="version-banner is-info"; icon.textContent="ℹ️";
+    title.textContent=t("vb.none.t");
+    sub.innerHTML=t("vb.thiscopy")+" <code>"+CONFIG.version+"</code>";
+    action.innerHTML='<a class="btn btn-ghost" href="'+GH_REPO_URL+'" target="_blank" rel="noopener">'+t("vb.seerepo")+'</a>';
+  } else {
+    box.className="version-banner is-info"; icon.textContent="❓";
+    title.textContent=t("vb.err.t");
+    sub.innerHTML=t("vb.err.sub").replace("{v}", CONFIG.version).replace("{rel}", GH_REPO_URL+"/releases");
+    action.innerHTML="";
   }
 }
 
-checkVersion();
+function checkVersion(){
+  fetch(GH_API_LATEST, { headers:{ "Accept":"application/vnd.github+json" } })
+    .then(function(res){
+      if (res.status===404){ lastResult={state:"none"}; renderBanner(); return null; }
+      if (!res.ok) throw new Error("HTTP "+res.status);
+      return res.json();
+    })
+    .then(function(data){
+      if (!data) return;
+      var latest = data.tag_name || data.name;
+      if (!latest) throw new Error("no tag");
+      var cmp = compareVersions(CONFIG.version, latest);
+      var url = data.html_url || (GH_REPO_URL + "/releases/latest");
+      lastResult = (cmp >= 0) ? {state:"ok", latest:latest} : {state:"warn", latest:latest, url:url};
+      renderBanner();
+    })
+    .catch(function(){ lastResult={state:"error"}; renderBanner(); });
+}
+
+(function init(){
+  var saved=null; try { saved=localStorage.getItem("ddl_lang"); } catch(e){}
+  var nav=(navigator.language || "fr").toLowerCase();
+  currentLang = saved || (nav.indexOf("en")===0 ? "en" : "fr");
+  var btns=document.querySelectorAll(".lang button");
+  for (var i=0;i<btns.length;i++){
+    (function(b){ b.addEventListener("click", function(){ setLang(b.getAttribute("data-lang")); }); })(btns[i]);
+  }
+  applyI18n();
+  checkVersion();
+})();
 </script>
 </body>
 </html>

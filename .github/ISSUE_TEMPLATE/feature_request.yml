@@ -1,0 +1,29 @@
+name: 💡 Proposer une idée
+description: Suggérer une fonctionnalité ou une amélioration
+title: "[Idée] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci pour votre suggestion ! L'auteur reste seul décideur de son
+        intégration et de toute publication.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quel problème cette idée résout-elle ?
+      placeholder: "Aujourd'hui, je ne peux pas …"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+    validations:
+      required: false
