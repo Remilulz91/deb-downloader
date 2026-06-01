@@ -1,0 +1,67 @@
+deb-downloader — Licence propriétaire / Proprietary License
+Copyright (c) 2026 Remilulz91. Tous droits réservés. / All rights reserved.
+
+====================================================================
+VERSION FRANÇAISE (fait foi)
+====================================================================
+
+Ce logiciel et son code source (« le Projet ») sont la propriété
+exclusive de Remilulz91 (« l'Auteur »). Le Projet est protégé par le
+droit d'auteur et les traités internationaux applicables.
+
+1. PROPRIÉTÉ
+   Le Projet, y compris son code source, son interface, ses ressources
+   graphiques et sa documentation, demeure la propriété exclusive de
+   l'Auteur. Aucun droit de propriété n'est cédé à quiconque.
+
+2. UTILISATION AUTORISÉE
+   Vous êtes autorisé à consulter le code source et à utiliser le
+   logiciel à des fins personnelles. Toute autre utilisation requiert
+   l'autorisation écrite préalable de l'Auteur.
+
+3. INTERDICTIONS
+   Sauf autorisation écrite expresse de l'Auteur, il est INTERDIT de :
+     a. revendiquer la propriété, la paternité ou l'origine du Projet ;
+     b. copier, redistribuer, revendre, sous-licencier ou publier le
+        Projet ou une partie substantielle de celui-ci ;
+     c. créer et diffuser des œuvres dérivées, forks publics ou versions
+        modifiées présentées comme officielles ;
+     d. retirer ou altérer les mentions de copyright et de licence ;
+     e. publier des versions « officielles » ou des mises à jour : seul
+        l'Auteur publie les versions officielles du Projet.
+
+4. CONTRIBUTIONS
+   La communauté est invitée à contribuer au développement en signalant
+   des bugs, en proposant des améliorations et en ouvrant des « issues ».
+   Ces contributions n'accordent aucun droit de propriété et l'Auteur
+   reste seul décideur de leur intégration et de toute publication.
+
+5. ABSENCE DE GARANTIE
+   LE PROJET EST FOURNI « EN L'ÉTAT », SANS AUCUNE GARANTIE, EXPRESSE OU
+   IMPLICITE. L'AUTEUR NE SAURAIT ÊTRE TENU RESPONSABLE D'UN QUELCONQUE
+   DOMMAGE LIÉ À L'UTILISATION DU PROJET.
+
+Pour toute demande d'autorisation : contactez l'Auteur via le dépôt
+GitHub https://github.com/Remilulz91/deb-downloader
+
+====================================================================
+ENGLISH VERSION (for convenience)
+====================================================================
+
+This software and its source code ("the Project") are the exclusive
+property of Remilulz91 ("the Author"). All rights reserved.
+
+You may view the source code and use the software for personal purposes.
+Without the Author's prior written permission, you may NOT: claim
+ownership or authorship of the Project; copy, redistribute, resell,
+sublicense or publish it or any substantial part; create or distribute
+derivative works, public forks or modified versions presented as
+official; remove or alter copyright and license notices; or publish
+"official" releases or updates — only the Author publishes official
+releases.
+
+Community contributions (bug reports, suggestions, issues) are welcome
+but grant no ownership rights; the Author alone decides on their
+integration and on any release.
+
+THE PROJECT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

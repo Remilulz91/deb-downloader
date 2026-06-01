@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>deb-downloader — Récupérez vos paquets .deb + dépendances</title>
+<meta name="description" content="deb-downloader : récupérez un paquet Debian/Ubuntu et toutes ses dépendances, prêts pour une installation hors-ligne / air-gapped, sans ligne de commande." />
+<meta name="author" content="Remilulz91" />
+<meta name="robots" content="index, follow" />
+<!-- Open Graph -->
+<meta property="og:title" content="deb-downloader" />
+<meta property="og:description" content="Récupérez un paquet Debian/Ubuntu et toutes ses dépendances, prêts pour une installation hors-ligne." />
+<meta property="og:type" content="website" />
+<style>
+  /* ============================================================
+     deb-downloader — feuille de style (intégrée pour un site
+     100% statique, déployable par simple glisser-déposer)
+     ============================================================ */
+  :root {
+    --bg:        #0d1117;
+    --bg-soft:   #161b22;
+    --bg-card:   #1b222c;
+    --border:    #2a3340;
+    --text:      #e6edf3;
+    --text-dim:  #9aa7b4;
+    --accent:    #d70a53;   /* rouge Debian-ish */
+    --accent-2:  #e95420;   /* orange Ubuntu-ish */
+    --ok:        #2ea043;
+    --warn:      #d29922;
+    --info:      #388bfd;
+    --radius:    14px;
+    --shadow:    0 8px 30px rgba(0,0,0,.35);
+    --maxw:      980px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 70% -10%, #1a2330 0%, var(--bg) 55%);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(13,17,23,.72);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; letter-spacing: .2px; }
+  .brand .dot { width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 12px var(--accent); }
+  .nav-links { display: flex; gap: 22px; font-size: .95rem; }
+  .nav-links a { color: var(--text-dim); text-decoration: none; transition: color .15s; }
+  .nav-links a:hover { color: var(--text); }
+  @media (max-width: 640px){ .nav-links { display:none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 78px 0 40px; text-align: center; }
+  .hero h1 { font-size: clamp(2.1rem, 5vw, 3.3rem); line-height: 1.1; font-weight: 800; }
+  .hero h1 .grad { background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.lead { max-width: 680px; margin: 18px auto 0; font-size: 1.18rem; color: var(--text-dim); }
+  .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 12px 22px; border-radius: 10px; font-weight: 600; font-size: 1rem;
+    text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .12s, background .15s, border .15s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: 0 6px 20px rgba(215,10,83,.35); }
+  .btn-ghost { background: var(--bg-card); color: var(--text); border-color: var(--border); }
+
+  /* ---------- Version banner ---------- */
+  .version-banner {
+    margin: 26px auto 0; max-width: 720px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg-card); box-shadow: var(--shadow);
+    padding: 20px 24px; text-align: left;
+    display: flex; align-items: center; gap: 18px;
+    transition: border-color .25s;
+  }
+  .vb-icon { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; background: var(--bg-soft); }
+  .vb-body { flex: 1; min-width: 0; }
+  .vb-title { font-weight: 700; font-size: 1.05rem; }
+  .vb-sub { color: var(--text-dim); font-size: .92rem; margin-top: 2px; }
+  .vb-sub code { background: var(--bg-soft); padding: 1px 7px; border-radius: 6px; font-size: .85rem; }
+  .vb-action { flex: none; }
+  .version-banner.is-ok    { border-color: var(--ok); }
+  .version-banner.is-ok    .vb-icon { color: var(--ok); }
+  .version-banner.is-warn  { border-color: var(--warn); }
+  .version-banner.is-warn  .vb-icon { color: var(--warn); }
+  .version-banner.is-info  { border-color: var(--info); }
+  .version-banner.is-info  .vb-icon { color: var(--info); }
+  .version-banner.is-loading .vb-icon { color: var(--text-dim); }
+  .spin { animation: spin 1s linear infinite; display:inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 560px){ .version-banner { flex-direction: column; align-items: flex-start; } .vb-action{ width:100%; } .vb-action .btn{ width:100%; justify-content:center; } }
+
+  /* ---------- Sections ---------- */
+  section.block { padding: 56px 0; border-top: 1px solid var(--border); }
+  section.block h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 8px; }
+  section.block .sub { color: var(--text-dim); margin-bottom: 30px; max-width: 640px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+  .card .ico { font-size: 1.6rem; margin-bottom: 10px; }
+  .card h3 { font-size: 1.1rem; margin-bottom: 6px; }
+  .card p { color: var(--text-dim); font-size: .95rem; }
+
+  /* Steps */
+  ol.steps { list-style: none; counter-reset: s; display: grid; gap: 14px; }
+  ol.steps li { counter-increment: s; position: relative; padding: 16px 18px 16px 60px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+  ol.steps li::before { content: counter(s); position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 700; display: grid; place-items: center; }
+  ol.steps li b { display:block; }
+  ol.steps li span { color: var(--text-dim); font-size: .93rem; }
+
+  .note { background: var(--bg-soft); border: 1px solid var(--border); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; color: var(--text-dim); font-size: .95rem; }
+  .note b { color: var(--text); }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--border); padding: 34px 0 60px; color: var(--text-dim); font-size: .9rem; }
+  footer .frow { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+  .copyright { font-size: .85rem; }
+  .copyright b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="dot"></span> deb-downloader</div>
+    <nav class="nav-links">
+      <a href="#fonctions">Fonctions</a>
+      <a href="#comment">Comment ça marche</a>
+      <a href="#contribuer">Contribuer</a>
+      <a id="nav-gh" href="#" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero wrap">
+    <h1>Vos paquets <span class="grad">.deb</span><br/>et toutes leurs dépendances</h1>
+    <p class="lead">
+      Choisissez votre distribution, tapez le nom d'un paquet, récupérez l'archive complète
+      prête pour une installation <b>hors-ligne / air-gapped</b>. Sans toucher à la ligne de commande.
+    </p>
+    <div class="cta-row">
+      <a id="cta-download" class="btn btn-primary" href="#" target="_blank" rel="noopener">⬇️ Télécharger la dernière version</a>
+      <a class="btn btn-ghost" href="#comment">Comment ça marche</a>
+    </div>
+
+    <!-- BANNIÈRE DE VERSION (remplie par JS) -->
+    <div id="version-banner" class="version-banner is-loading" role="status" aria-live="polite">
+      <div class="vb-icon"><span class="spin">⏳</span></div>
+      <div class="vb-body">
+        <div class="vb-title" id="vb-title">Vérification de la version…</div>
+        <div class="vb-sub" id="vb-sub">Cette copie : <code id="vb-current">v0.0.0</code></div>
+      </div>
+      <div class="vb-action" id="vb-action"></div>
+    </div>
+  </section>
+
+  <!-- FONCTIONS -->
+  <section class="block" id="fonctions">
+    <div class="wrap">
+      <h2>Ce que fait deb-downloader</h2>
+      <p class="sub">L'outil délègue la résolution des dépendances à <code>apt</code> lui-même, dans un conteneur de la distribution cible — donc le résultat correspond <b>exactement</b> à votre version.</p>
+      <div class="grid">
+        <div class="card"><div class="ico">📦</div><h3>Paquet + dépendances</h3><p>Récupère le paquet demandé et l'arbre complet de ses dépendances, sans rien oublier.</p></div>
+        <div class="card"><div class="ico">🐧</div><h3>Debian &amp; Ubuntu</h3><p>Sélection de la distribution et de la version (ex. Ubuntu 24.04, Debian 12) pour des deps exactes.</p></div>
+        <div class="card"><div class="ico">✈️</div><h3>Hors-ligne / air-gapped</h3><p>Sortie sous forme de mini-dépôt local (.deb + index) utilisable sans connexion.</p></div>
+        <div class="card"><div class="ico">🖱️</div><h3>Zéro ligne de commande</h3><p>Une interface simple : on choisit, on tape, on télécharge. Pas besoin d'être expert.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMENT -->
+  <section class="block" id="comment">
+    <div class="wrap">
+      <h2>Comment ça marche</h2>
+      <p class="sub">Quatre étapes, du choix du paquet à l'archive prête à l'emploi.</p>
+      <ol class="steps">
+        <li><b>1 · Choisissez votre distribution</b><span>Debian ou Ubuntu, puis la version précise (la résolution des dépendances en dépend).</span></li>
+        <li><b>2 · Saisissez le(s) paquet(s)</b><span>Par exemple <code>nginx</code>. Plusieurs paquets possibles.</span></li>
+        <li><b>3 · Résolution automatique</b><span>Le moteur calcule l'arbre complet des dépendances via <code>apt</code> dans un conteneur de la distrib cible.</span></li>
+        <li><b>4 · Téléchargez l'archive</b><span>Un dossier de <code>.deb</code> + index, prêt pour une installation hors-ligne.</span></li>
+      </ol>
+      <div class="note" style="margin-top:22px;">
+        <b>À noter :</b> le moteur de récupération s'exécute côté serveur (conteneurs Docker isolés). Cette page est la vitrine et l'indicateur de version du projet.
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTRIBUER -->
+  <section class="block" id="contribuer">
+    <div class="wrap">
+      <h2>Contribuer &amp; signaler un bug</h2>
+      <p class="sub">Le projet est ouvert aux retours de la communauté, dans le respect du copyright.</p>
+      <div class="grid">
+        <div class="card"><div class="ico">🐞</div><h3>Signaler un bug</h3><p>Ouvrez une <a id="link-issues" href="#" target="_blank" rel="noopener" style="color:var(--info)">issue sur GitHub</a> en décrivant le problème, votre distrib et la version utilisée.</p></div>
+        <div class="card"><div class="ico">💡</div><h3>Proposer une idée</h3><p>Les suggestions de fonctionnalités sont les bienvenues via les issues.</p></div>
+        <div class="card"><div class="ico">🔒</div><h3>Mises à jour officielles</h3><p>Seul l'auteur (<b>Remilulz91</b>) publie les versions officielles. C'est la seule source fiable.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <div class="copyright">
+      © <span id="year">2026</span> <b>Remilulz91</b> — deb-downloader. Tous droits réservés.<br/>
+      Projet sous copyright. Réutilisation, redistribution ou appropriation interdites sans autorisation écrite.
+    </div>
+    <div>
+      <a id="footer-gh" href="#" target="_blank" rel="noopener">Dépôt GitHub →</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   deb-downloader — logique de l'indicateur de version
+   ------------------------------------------------------------
+   100% navigateur, aucun backend requis. Interroge l'API
+   publique GitHub Releases et compare à la version de CETTE copie.
+
+   👉 À CHAQUE NOUVELLE RELEASE : mettez à jour CONFIG.version
+      avec le tag que vous publiez (ex. "v0.2.0"), puis publiez.
+   ============================================================ */
+const CONFIG = {
+  owner:   "Remilulz91",
+  repo:    "deb-downloader",
+  // Version embarquée dans CETTE copie déployée du site :
+  version: "v0.1.0"
+};
+
+const GH_REPO_URL = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
+const GH_API_LATEST = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/releases/latest`;
+
+/* Liens statiques vers GitHub */
+document.getElementById("year").textContent = new Date().getFullYear();
+document.getElementById("vb-current").textContent = CONFIG.version;
+[["nav-gh", GH_REPO_URL],
+ ["footer-gh", GH_REPO_URL],
+ ["link-issues", GH_REPO_URL + "/issues"],
+ ["cta-download", GH_REPO_URL + "/releases/latest"]
+].forEach(([id, url]) => { const el = document.getElementById(id); if (el) el.href = url; });
+
+/* Compare deux versions sémantiques "vX.Y.Z".
+   Retourne 1 si a>b, -1 si a<b, 0 si égales. */
+function compareVersions(a, b) {
+  const clean = v => String(v).trim().replace(/^v/i, "").split("-")[0];
+  const pa = clean(a).split(".").map(n => parseInt(n, 10) || 0);
+  const pb = clean(b).split(".").map(n => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const x = pa[i] || 0, y = pb[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
+function setBanner(state, icon, title, subHTML, actionHTML) {
+  const b = document.getElementById("version-banner");
+  b.className = "version-banner " + state;
+  b.querySelector(".vb-icon").innerHTML = icon;
+  document.getElementById("vb-title").innerHTML = title;
+  document.getElementById("vb-sub").innerHTML = subHTML;
+  document.getElementById("vb-action").innerHTML = actionHTML || "";
+}
+
+async function checkVersion() {
+  try {
+    const res = await fetch(GH_API_LATEST, { headers: { "Accept": "application/vnd.github+json" } });
+
+    if (res.status === 404) {
+      // Aucune release publiée pour l'instant
+      setBanner("is-info", "ℹ️", "Aucune version publiée pour le moment",
+        `Cette copie : <code>${CONFIG.version}</code>`,
+        `<a class="btn btn-ghost" href="${GH_REPO_URL}" target="_blank" rel="noopener">Voir le dépôt</a>`);
+      return;
+    }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    const data = await res.json();
+    const latest = data.tag_name || data.name;
+    if (!latest) throw new Error("Tag introuvable");
+
+    const cmp = compareVersions(CONFIG.version, latest);
+    const relUrl = data.html_url || (GH_REPO_URL + "/releases/latest");
+
+    if (cmp >= 0) {
+      // À jour (ou en avance, ex. build de dev)
+      setBanner("is-ok", "✅", "Vous êtes à la dernière version",
+        `Cette copie : <code>${CONFIG.version}</code> · Dernière publiée : <code>${latest}</code>`,
+        `<a class="btn btn-ghost" href="${GH_REPO_URL}/releases" target="_blank" rel="noopener">Notes de version</a>`);
+    } else {
+      // Une mise à jour est disponible
+      setBanner("is-warn", "⚠️", "Une nouvelle version est disponible",
+        `Cette copie : <code>${CONFIG.version}</code> · Dernière publiée : <code>${latest}</code>`,
+        `<a class="btn btn-primary" href="${relUrl}" target="_blank" rel="noopener">Mettre à jour vers ${latest}</a>`);
+    }
+  } catch (err) {
+    setBanner("is-info", "❓", "Impossible de vérifier la version",
+      `Cette copie : <code>${CONFIG.version}</code>. Vérifiez manuellement les <a href="${GH_REPO_URL}/releases" target="_blank" rel="noopener" style="color:var(--info)">releases</a>.`,
+      "");
+  }
+}
+
+checkVersion();
+</script>
+</body>
+</html>
