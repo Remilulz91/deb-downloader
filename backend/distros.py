@@ -1,20 +1,20 @@
-"""deb-downloader — distributions supportees (MVP).
-Copyright (c) 2026 Remilulz91. Tous droits reserves.
+"""deb-downloader — supported distributions (MVP).
+Copyright (c) 2026 Remilulz91. All rights reserved.
 
-Mapping (distribution, version) -> image Docker officielle, et architectures.
-On etend ce dictionnaire pour ajouter de nouvelles versions plus tard.
+Maps (distribution, version) -> official Docker image, plus architectures.
+Extend this dictionary to add new versions later.
 """
 
-# Cle: (distro, release) -> image Docker de base
+# Key: (distro, release) -> base Docker image
 SUPPORTED = {
     ("debian", "13"): "debian:13",
     ("ubuntu", "26.04"): "ubuntu:26.04",
 }
 
-# Architectures autorisees (MVP: amd64 uniquement)
+# Allowed architectures (MVP: amd64 only)
 ARCHES = {"amd64"}
 
-# docker --platform correspondant a l'arch demandee
+# docker --platform matching the requested arch
 PLATFORM = {
     "amd64": "linux/amd64",
     "arm64": "linux/arm64",
@@ -22,18 +22,18 @@ PLATFORM = {
 
 
 def image_for(distro: str, release: str) -> str:
-    """Retourne l'image Docker pour (distro, release) ou leve ValueError."""
+    """Return the Docker image for (distro, release) or raise ValueError."""
     key = (distro.lower().strip(), release.strip())
     if key not in SUPPORTED:
-        dispo = ", ".join(f"{d} {r}" for (d, r) in SUPPORTED)
+        available = ", ".join(f"{d} {r}" for (d, r) in SUPPORTED)
         raise ValueError(
-            f"Distribution non supportee: {distro} {release}. "
-            f"Supportees: {dispo}."
+            f"Unsupported distribution: {distro} {release}. "
+            f"Supported: {available}."
         )
     return SUPPORTED[key]
 
 
 def list_supported():
-    """Liste serialisable pour l'API /distributions."""
+    """Serializable list for the /distributions API."""
     return [{"distro": d, "release": r, "image": img}
             for (d, r), img in SUPPORTED.items()]

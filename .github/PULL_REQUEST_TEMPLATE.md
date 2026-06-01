@@ -1,23 +1,23 @@
 <!--
-  Merci pour votre contribution ! Rappel : le projet est sous copyright.
-  Soumettre une PR ne confère aucun droit de propriété, et l'auteur
-  (Remilulz91) reste seul décideur de l'intégration et de toute publication.
+  Thanks for contributing! Reminder: this project is copyrighted.
+  Submitting a PR grants no ownership rights, and the author (Remilulz91)
+  remains the sole decision-maker on integration and on any release.
 -->
 
 ## Description
-<!-- Que change cette PR et pourquoi ? -->
+<!-- What does this PR change, and why? -->
 
-## Issue liée
-<!-- ex. Closes #12 -->
+## Related issue
+<!-- e.g. Closes #12 -->
 
-## Type de changement
-- [ ] 🐞 Correction de bug
-- [ ] ✨ Nouvelle fonctionnalité
+## Type of change
+- [ ] 🐞 Bug fix
+- [ ] ✨ New feature
 - [ ] 📚 Documentation
-- [ ] 🔧 Autre
+- [ ] 🔧 Other
 
 ## Checklist
-- [ ] J'ai testé mes changements localement.
-- [ ] J'ai mis à jour `CHANGELOG.md` si nécessaire.
-- [ ] Si la version du site change, j'ai mis à jour `CONFIG.version` dans `index.html`.
-- [ ] Je comprends que l'auteur reste seul décideur de l'intégration et de la publication.
+- [ ] I tested my changes locally.
+- [ ] I updated `CHANGELOG.md` if needed.
+- [ ] If the site version changed, I updated `CONFIG.version` in `index.html`.
+- [ ] I understand the author remains the sole decision-maker on integration and release.

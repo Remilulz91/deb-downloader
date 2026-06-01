@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""deb-downloader — moteur de recuperation (MVP, autonome).
-Copyright (c) 2026 Remilulz91. Tous droits reserves.
+"""deb-downloader — fetch engine (MVP, standalone).
+Copyright (c) 2026 Remilulz91. All rights reserved.
 
-Lance un conteneur Docker JETABLE de la distribution cible, y telecharge le(s)
-paquet(s) demande(s) + toutes leurs dependances via apt, puis assemble une
-archive .zip (depot local hors-ligne) cote hote. Le conteneur est detruit.
+Launches a DISPOSABLE Docker container of the target distribution, downloads the
+requested package(s) + all their dependencies via apt, then assembles a .zip
+archive (offline local repository) host-side. The container is destroyed.
 
-Exemple :
+Examples:
     python3 fetch.py --distro ubuntu --release 26.04 --packages nginx
     python3 fetch.py --distro debian --release 13 --packages nginx curl --out ./out
     python3 fetch.py --distro ubuntu --release 26.04 --packages nginx --dry-run
 
-Necessite Docker (hote) + dpkg-dev (dpkg-scanpackages) cote hote.
+Requires Docker (host) + dpkg-dev (dpkg-scanpackages) on the host.
 """
 from __future__ import annotations
 import re
@@ -26,38 +26,38 @@ from pathlib import Path
 import distros
 import build_repo
 
-# Validation stricte d'un nom de paquet Debian/Ubuntu.
+# Strict validation of a Debian/Ubuntu package name.
 PKG_RE = re.compile(r"^[a-z0-9][a-z0-9+._-]*$")
 
-# Plafonds par defaut (anti-abus / protection de l'hote)
+# Default caps (anti-abuse / host protection)
 DEFAULTS = {
     "memory": "1g",
     "cpus": "1.0",
     "pids_limit": "256",
-    "timeout": 600,         # secondes
+    "timeout": 600,         # seconds
     "max_packages": 20,
 }
 
 
 def validate(distro, release, arch, packages):
-    """Valide les entrees. Leve ValueError en cas de probleme."""
-    image = distros.image_for(distro, release)  # leve si non supporte
+    """Validate the input. Raises ValueError on any problem."""
+    image = distros.image_for(distro, release)  # raises if unsupported
     if arch not in distros.ARCHES:
-        raise ValueError(f"Architecture non supportee: {arch} (MVP: {sorted(distros.ARCHES)}).")
+        raise ValueError(f"Unsupported architecture: {arch} (MVP: {sorted(distros.ARCHES)}).")
     if not packages:
-        raise ValueError("Aucun paquet demande.")
+        raise ValueError("No package requested.")
     if len(packages) > DEFAULTS["max_packages"]:
-        raise ValueError(f"Trop de paquets (max {DEFAULTS['max_packages']}).")
+        raise ValueError(f"Too many packages (max {DEFAULTS['max_packages']}).")
     bad = [p for p in packages if not PKG_RE.match(p)]
     if bad:
-        raise ValueError(f"Nom(s) de paquet invalide(s): {bad}")
+        raise ValueError(f"Invalid package name(s): {bad}")
     return image
 
 
 def container_script(packages, no_recommends=False):
-    """Script execute DANS le conteneur jetable : telecharge les .deb dans /out/debs."""
+    """Script run INSIDE the disposable container: downloads .deb into /out/debs."""
     rec = "--no-install-recommends " if no_recommends else ""
-    # packages deja valides -> sûr a interpoler ; on les quote tout de meme.
+    # packages are already validated -> safe to interpolate; quote them anyway.
     pkgs = " ".join(shlex.quote(p) for p in packages)
     return (
         "set -e; export DEBIAN_FRONTEND=noninteractive; "
@@ -66,13 +66,13 @@ def container_script(packages, no_recommends=False):
         "rm -f /var/cache/apt/archives/*.deb || true; "
         f"apt-get install -y {rec}--download-only {pkgs}; "
         "cp /var/cache/apt/archives/*.deb /out/debs/ 2>/dev/null || true; "
-        # marqueur du nombre de .deb recuperes
+        # marker: number of fetched .deb files
         "ls -1 /out/debs/*.deb | wc -l > /out/.count"
     )
 
 
 def docker_command(image, arch, out_host, script, limits):
-    """Construit la commande `docker run` (liste d'arguments)."""
+    """Build the `docker run` command (argument list)."""
     platform = distros.PLATFORM.get(arch, "linux/amd64")
     return [
         "docker", "run", "--rm",
@@ -80,7 +80,7 @@ def docker_command(image, arch, out_host, script, limits):
         "--memory", limits["memory"],
         "--cpus", limits["cpus"],
         "--pids-limit", limits["pids_limit"],
-        # securite : pas de privileges, pas de socket docker monte
+        # security: no privileges, no docker socket mounted
         "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges",
         "-v", f"{out_host}:/out",
@@ -101,46 +101,46 @@ def run(distro, release, arch, packages, out_dir=None,
     cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits)
 
     if dry_run:
-        print("# [dry-run] commande Docker qui serait executee :\n")
+        print("# [dry-run] Docker command that would be executed:\n")
         print(" ".join(shlex.quote(c) for c in cmd))
-        print("\n# [dry-run] script dans le conteneur :\n")
+        print("\n# [dry-run] script inside the container:\n")
         print(script)
         return None
 
     if shutil.which("docker") is None:
-        raise RuntimeError("Docker introuvable sur l'hote.")
+        raise RuntimeError("Docker not found on the host.")
 
-    print(f"[*] Recuperation de {packages} pour {distro} {release} ({arch})...")
+    print(f"[*] Fetching {packages} for {distro} {release} ({arch})...")
     subprocess.run(cmd, check=True, timeout=limits["timeout"])
 
     safe_pkg = "-".join(packages)
     zip_name = f"{safe_pkg}_{distro}-{release}_{arch}.zip"
     zip_path = out_dir.parent / zip_name
     build_repo.build(out_dir, distro, release, packages, zip_path)
-    print(f"[OK] Archive prete : {zip_path}")
+    print(f"[OK] Archive ready: {zip_path}")
     return zip_path
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="deb-downloader — recuperation de paquets .deb + dependances")
+    p = argparse.ArgumentParser(description="deb-downloader — fetch .deb packages + dependencies")
     p.add_argument("--distro", required=True, help="debian | ubuntu")
-    p.add_argument("--release", required=True, help="ex: 13 (debian) ou 26.04 (ubuntu)")
-    p.add_argument("--arch", default="amd64", help="amd64 (defaut)")
-    p.add_argument("--packages", required=True, nargs="+", help="un ou plusieurs paquets")
-    p.add_argument("--out", default=None, help="dossier de travail (defaut: temporaire)")
-    p.add_argument("--no-recommends", action="store_true", help="exclure les paquets recommandes")
+    p.add_argument("--release", required=True, help="e.g. 13 (debian) or 26.04 (ubuntu)")
+    p.add_argument("--arch", default="amd64", help="amd64 (default)")
+    p.add_argument("--packages", required=True, nargs="+", help="one or more packages")
+    p.add_argument("--out", default=None, help="working folder (default: temporary)")
+    p.add_argument("--no-recommends", action="store_true", help="exclude recommended packages")
     p.add_argument("--timeout", type=int, default=DEFAULTS["timeout"])
-    p.add_argument("--dry-run", action="store_true", help="affiche la commande sans l'executer")
+    p.add_argument("--dry-run", action="store_true", help="print the command without running it")
     a = p.parse_args(argv)
     try:
         run(a.distro, a.release, a.arch, a.packages, out_dir=a.out,
             no_recommends=a.no_recommends, limits={"timeout": a.timeout},
             dry_run=a.dry_run)
     except (ValueError, RuntimeError) as e:
-        print(f"[ERREUR] {e}", file=sys.stderr)
+        print(f"[ERROR] {e}", file=sys.stderr)
         return 2
     except subprocess.TimeoutExpired:
-        print("[ERREUR] Timeout depasse.", file=sys.stderr)
+        print("[ERROR] Timeout exceeded.", file=sys.stderr)
         return 3
     return 0
 

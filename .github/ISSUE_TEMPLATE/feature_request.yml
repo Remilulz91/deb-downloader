@@ -1,29 +1,29 @@
-name: 💡 Proposer une idée
-description: Suggérer une fonctionnalité ou une amélioration
-title: "[Idée] "
+name: 💡 Feature request
+description: Suggest a feature or an improvement
+title: "[Idea] "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci pour votre suggestion ! L'auteur reste seul décideur de son
-        intégration et de toute publication.
+        Thanks for your suggestion! The author remains the sole decision-maker
+        on whether and how it is integrated and released.
   - type: textarea
     id: problem
     attributes:
-      label: Quel problème cette idée résout-elle ?
-      placeholder: "Aujourd'hui, je ne peux pas …"
+      label: What problem does this idea solve?
+      placeholder: "Today, I can't …"
     validations:
       required: true
   - type: textarea
     id: solution
     attributes:
-      label: Solution proposée
+      label: Proposed solution
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives envisagées
+      label: Alternatives considered
     validations:
       required: false

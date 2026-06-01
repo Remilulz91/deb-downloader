@@ -1,248 +1,251 @@
-# Architecture du moteur backend — deb-downloader
+# Backend engine architecture — deb-downloader
 
-> Document de conception. Copyright © 2026 Remilulz91 — Tous droits réservés.
-> Cible MVP : **Debian 13** et **Ubuntu 26.04** (amd64). Versions plus anciennes ensuite.
-
----
-
-## 1. Principe directeur
-
-La règle d'or du projet : **ne jamais réinventer la résolution de dépendances.**
-C'est `apt` qui sait, mieux que quiconque, quels paquets sont nécessaires pour
-une distribution et une version données. On se contente donc de **lancer un
-conteneur Docker de la distribution exacte demandée**, d'y interroger `apt`, de
-télécharger les `.deb`, d'en faire un mini-dépôt local, puis de **détruire le
-conteneur**. Le résultat correspond donc exactement à ce qu'obtiendrait
-l'utilisateur sur sa vraie machine.
-
-Conséquence directe : le moteur **doit** tourner sur un hôte Linux avec Docker.
-Il est totalement découplé du site vitrine (statique) déjà réalisé.
+> Design document. Copyright © 2026 Remilulz91 — All rights reserved.
+> MVP target: **Debian 13** and **Ubuntu 26.04** (amd64). Older versions later.
 
 ---
 
-## 2. Vue d'ensemble des composants
+## 1. Guiding principle
 
-Le système se décompose en quatre rôles.
+The golden rule of the project: **never reinvent dependency resolution.** `apt`
+knows, better than anyone, which packages are required for a given distribution
+and version. So we simply **spin up a Docker container of the exact requested
+distribution**, query `apt` inside it, download the `.deb` files, build a small
+local repository, then **destroy the container**. The result therefore matches
+exactly what the user would get on their real machine.
 
-Le **frontend applicatif** est l'interface de sélection (distribution, version,
-paquets). C'est une page web légère qui n'appelle qu'une API HTTP. Elle peut
-être servie en statique, comme la vitrine.
+A direct consequence: the engine **must** run on a Linux host with Docker. It is
+fully decoupled from the (static) website already built.
 
-L'**API** (Python / FastAPI) reçoit les demandes, valide les entrées, crée un
-« job » et expose son état et son résultat. Elle ne fait jamais le travail lourd
-elle-même : elle le délègue.
+---
 
-Le **worker** consomme les jobs d'une file d'attente. Pour chaque job, il
-orchestre un conteneur Docker jetable, y exécute la récupération `apt`, assemble
-le `.zip`, puis nettoie.
+## 2. Component overview
 
-Le **conteneur cible jetable** est une instance de `debian:13` ou `ubuntu:26.04`
-créée à la volée, sans réseau privilégié, détruite après usage. C'est la seule
-partie qui exécute du code lié à la distribution.
+The system breaks down into four roles.
+
+The **application frontend** is the selection UI (distribution, version,
+packages). It is a lightweight web page that only calls an HTTP API. It can be
+served statically, like the landing page.
+
+The **API** (Python / FastAPI) receives requests, validates input, creates a
+"job", and exposes its state and result. It never does the heavy lifting
+itself: it delegates.
+
+The **worker** consumes jobs from a queue. For each job it orchestrates a
+disposable Docker container, runs the `apt` fetch inside it, assembles the
+`.zip`, then cleans up.
+
+The **disposable target container** is an instance of `debian:13` or
+`ubuntu:26.04` created on the fly, without privileged networking, destroyed
+after use. It is the only part that runs distribution-specific code.
 
 ```mermaid
 flowchart TD
-    U[Utilisateur navigateur] -->|1. choix distro/version/paquets| F[Frontend applicatif]
-    F -->|2. POST /api/jobs| API[API FastAPI]
-    API -->|3. enfile le job| Q[(File de jobs - Redis)]
-    API -->|4. renvoie job_id| F
-    W[Worker] -->|5. prend le job| Q
-    W -->|6. docker run jetable| C[Conteneur debian:13 / ubuntu:26.04]
-    C -->|7. apt resout + telecharge .deb| C
-    W -->|8. dpkg-scanpackages + zip| R[(Stockage resultats)]
-    W -->|9. detruit le conteneur| C
+    U[User browser] -->|1. pick distro/version/packages| F[Application frontend]
+    F -->|2. POST /api/jobs| API[FastAPI API]
+    API -->|3. enqueue job| Q[(Job queue - Redis)]
+    API -->|4. return job_id| F
+    W[Worker] -->|5. pick up job| Q
+    W -->|6. docker run disposable| C[Container debian:13 / ubuntu:26.04]
+    C -->|7. apt resolves + downloads .deb| C
+    W -->|8. dpkg-scanpackages + zip| R[(Results storage)]
+    W -->|9. destroy container| C
     F -->|10. polling GET /api/jobs/id| API
-    API -->|11. statut + lien| F
+    API -->|11. status + link| F
     F -->|12. GET /download| R
 ```
 
 ---
 
-## 3. Flux détaillé d'un job
+## 3. Detailed job flow
 
-L'utilisateur choisit `Ubuntu 26.04` et saisit `nginx`. Le frontend envoie un
-`POST /api/jobs`. L'API valide (distribution connue, noms de paquets bien
-formés, quotas), crée un identifiant de job, l'enfile et répond immédiatement
-avec ce `job_id` — l'utilisateur n'attend pas.
+The user picks `Ubuntu 26.04` and enters `nginx`. The frontend sends a
+`POST /api/jobs`. The API validates (known distribution, well-formed package
+names, quotas), creates a job id, enqueues it, and immediately responds with
+that `job_id` — the user does not wait.
 
-Un worker prend le job. Il démarre un conteneur jetable de l'image
-correspondante. À l'intérieur, il rafraîchit les index (`apt-get update`) puis
-calcule la liste complète des URLs à télécharger :
+A worker picks up the job. It starts a disposable container of the matching
+image. Inside, it refreshes the indexes (`apt-get update`) and then computes the
+full list of URLs to download:
 
 ```bash
 apt-get install --reinstall --print-uris -y --no-install-recommends nginx \
   | grep -oE "https?://[^']+\.deb"
 ```
 
-`--print-uris` demande à `apt` de **résoudre tout l'arbre de dépendances** et de
-lister les URLs des `.deb`, sans rien installer. Le worker télécharge chaque
-`.deb` dans un dossier de travail (option robuste : `apt-get install
---download-only -o Dir::Cache::archives=/work/debs ...`, puis on copie le cache).
+`--print-uris` asks `apt` to **resolve the whole dependency tree** and list the
+`.deb` URLs without installing anything. The worker downloads each `.deb` into a
+working folder (robust option: `apt-get install --download-only -o
+Dir::Cache::archives=/work/debs ...`, then copy the cache).
 
-Une fois les `.deb` récupérés, le worker génère l'index du dépôt local :
+Once the `.deb` files are fetched, the worker generates the local repository
+index:
 
 ```bash
 cd /work
 dpkg-scanpackages debs /dev/null | gzip -9c > debs/Packages.gz
 ```
 
-Il ajoute un petit `INSTALL.txt` expliquant comment utiliser le dépôt hors-ligne,
-puis compresse l'ensemble en `.zip`. Le conteneur est détruit (`docker rm -f`).
-Le worker dépose le `.zip` dans le stockage des résultats et marque le job
-`done`. Le frontend, qui interrogeait `GET /api/jobs/{id}`, voit le statut passer
-à `done` et propose un bouton **Télécharger** pointant vers `GET
-/api/jobs/{id}/download` — un simple clic, le `.zip` arrive chez l'utilisateur.
+It adds a short `INSTALL.txt` explaining how to use the offline repository, then
+zips everything. The container is destroyed (`docker rm -f`). The worker drops
+the `.zip` into results storage and marks the job `done`. The frontend, which
+was polling `GET /api/jobs/{id}`, sees the status flip to `done` and offers a
+**Download** button pointing at `GET /api/jobs/{id}/download` — one click and the
+`.zip` reaches the user.
 
 ---
 
-## 4. Contenu du `.zip` livré
+## 4. Contents of the delivered `.zip`
 
-Conformément à l'objectif air-gapped, le `.zip` n'est pas un simple tas de
-fichiers : c'est un **dépôt local prêt à l'emploi**.
+In line with the air-gapped goal, the `.zip` is not just a pile of files: it is
+a **ready-to-use local repository**.
 
 ```
 nginx_ubuntu-26.04_amd64.zip
 └── debs/
     ├── nginx_*.deb
     ├── libpcre3_*.deb
-    ├── ... (toutes les dépendances)
-    └── Packages.gz          ← index généré par dpkg-scanpackages
-└── INSTALL.txt              ← instructions hors-ligne
+    ├── ... (all dependencies)
+    └── Packages.gz          ← index generated by dpkg-scanpackages
+└── INSTALL.txt              ← offline instructions
 ```
 
-`INSTALL.txt` indique les deux usages possibles côté utilisateur : soit
-l'installation directe (`sudo dpkg -i debs/*.deb` puis `sudo apt-get install -f`),
-soit l'ajout comme dépôt local (`deb [trusted=yes] file:/chemin/debs ./` dans
-`sources.list`, puis `apt-get update && apt-get install nginx`). La seconde
-méthode gère proprement l'ordre des dépendances.
+`INSTALL.txt` describes both ways to use it on the target machine: either a
+direct install (`sudo dpkg -i debs/*.deb` then `sudo apt-get install -f`), or
+adding it as a local repository (`deb [trusted=yes] file:/path/debs ./` in
+`sources.list`, then `apt-get update && apt-get install nginx`). The second
+method handles dependency ordering cleanly.
 
 ---
 
-## 5. File de jobs & exécution asynchrone
+## 5. Job queue & asynchronous execution
 
-La récupération peut durer de quelques secondes à plusieurs minutes (gros arbres
-de dépendances, téléchargements >300 Mo). On ne bloque donc jamais la requête
-HTTP. On utilise une **file d'attente** :
+A fetch can take from a few seconds to several minutes (large dependency trees,
+downloads >300 MB). We never block the HTTP request, so we use a **queue**:
 
-- **MVP** : Redis + RQ (Redis Queue), simple à mettre en place, suffisant pour un
-  worker. L'API enfile, le worker dépile.
-- **Évolution** : plusieurs workers, priorités, reprise sur erreur.
+- **MVP**: Redis + RQ (Redis Queue), simple to set up, enough for one worker.
+  The API enqueues, the worker dequeues.
+- **Later**: multiple workers, priorities, retry on failure.
 
-Le polling côté frontend (toutes les 2 s) est suffisant pour le MVP ; on pourra
-passer à du Server-Sent Events / WebSocket plus tard pour le live.
-
----
-
-## 6. Sécurité & isolation (point critique)
-
-Exécuter des conteneurs à la demande est une **surface d'attaque** : il faut
-l'isoler sérieusement, même si les seules commandes lancées sont des `apt`.
-
-Les conteneurs cibles sont **jetables et non privilégiés** (`--rm`, pas de
-`--privileged`, pas de montage du socket Docker à l'intérieur). On limite leurs
-ressources (`--memory`, `--cpus`, `--pids-limit`) et on impose un **timeout** au
-worker (kill du conteneur au-delà de N minutes). Le réseau du conteneur est
-restreint au strict nécessaire (accès aux miroirs apt uniquement, idéalement via
-un proxy/cache apt comme `apt-cacher-ng`, ce qui accélère aussi les jobs
-répétés). Les entrées utilisateur (noms de paquets) sont **strictement
-validées** par une liste blanche de caractères (`^[a-z0-9][a-z0-9+._-]*$`) et
-jamais interpolées dans un shell sans contrôle — on passe les arguments en
-tableau, pas en chaîne. Enfin l'API applique des **quotas** (voir §7).
-
-Le worker, lui, parle au démon Docker : il doit tourner sur un hôte dédié ou une
-VM isolée, pas sur une machine sensible.
+Frontend polling (every 2 s) is enough for the MVP; we can move to
+Server-Sent Events / WebSocket later for live updates.
 
 ---
 
-## 7. Limites & quotas (anti-abus, gestion disque)
+## 6. Security & isolation (critical)
 
-Pour éviter qu'un job ne sature le disque ou monopolise la machine, on fixe des
-plafonds configurables : nombre maximum de paquets par job (ex. 20), taille
-totale maximale du résultat (ex. 1 Go, le job échoue proprement au-delà),
-timeout par job (ex. 10 min), et nombre de jobs simultanés. Les résultats
-(`.zip`) sont **éphémères** : purge automatique après expiration (ex. 24 h) par
-une tâche planifiée, et nettoyage immédiat des dossiers de travail après chaque
-job. Un cache de miroir apt (`apt-cacher-ng`) réduit fortement la bande passante
-et le temps pour les paquets souvent demandés.
+Running containers on demand is an **attack surface** and must be seriously
+isolated, even though the only commands run are `apt`.
 
----
+Target containers are **disposable and unprivileged** (`--rm`, no
+`--privileged`, no Docker socket mounted inside). We cap their resources
+(`--memory`, `--cpus`, `--pids-limit`) and enforce a **timeout** on the worker
+(kill the container past N minutes). The container network is restricted to the
+strict minimum (access to apt mirrors only, ideally through an apt proxy/cache
+like `apt-cacher-ng`, which also speeds up repeated jobs). User input (package
+names) is **strictly validated** against an allowlist of characters
+(`^[a-z0-9][a-z0-9+._-]*$`) and never interpolated into a shell without control
+— arguments are passed as an array, not a string. Finally the API enforces
+**quotas** (see §7).
 
-## 8. Stack technique retenue
-
-Le backend est en **Python 3.12+ / FastAPI** (Uvicorn) : c'est l'écosystème le
-mieux outillé pour Debian/apt et l'orchestration Docker. La file est **Redis +
-RQ**. L'orchestration Docker se fait via le **SDK Python `docker`** (ou,
-plus simple et plus robuste pour le MVP, des appels `subprocess` à la CLI
-`docker run`). Les images cibles sont les officielles `debian:13` et
-`ubuntu:26.04`. Tout est packagé en **`docker-compose`** : un service `api`, un
-service `worker`, un service `redis`, et optionnellement `apt-cacher-ng`. Le
-déploiement sur la VM Linux se résume alors à `docker compose up -d`.
+The worker, which talks to the Docker daemon, must run on a dedicated host or an
+isolated VM, never on a sensitive machine.
 
 ---
 
-## 9. API HTTP (esquisse)
+## 7. Limits & quotas (anti-abuse, disk management)
 
-`POST /api/jobs` reçoit `{ "distro": "ubuntu", "release": "26.04", "arch":
-"amd64", "packages": ["nginx"] }` et renvoie `{ "job_id": "...", "status":
+To prevent a job from filling the disk or hogging the machine, we set
+configurable caps: maximum number of packages per job (e.g. 20), maximum total
+result size (e.g. 1 GB, the job fails cleanly beyond that), per-job timeout
+(e.g. 10 min), and number of concurrent jobs. Results (`.zip`) are
+**ephemeral**: auto-purged after expiry (e.g. 24 h) by a scheduled task, and
+working folders cleaned immediately after each job. An apt mirror cache
+(`apt-cacher-ng`) greatly reduces bandwidth and time for frequently requested
+packages.
+
+---
+
+## 8. Chosen technical stack
+
+The backend is **Python 3.12+ / FastAPI** (Uvicorn): the best-tooled ecosystem
+for Debian/apt and Docker orchestration. The queue is **Redis + RQ**. Docker
+orchestration uses the **Python `docker` SDK** (or, simpler and more robust for
+the MVP, `subprocess` calls to the `docker run` CLI). Target images are the
+official `debian:13` and `ubuntu:26.04`. Everything is packaged with
+**`docker-compose`**: an `api` service, a `worker` service, a `redis` service,
+and optionally `apt-cacher-ng`. Deployment on the Linux VM then boils down to
+`docker compose up -d`.
+
+---
+
+## 9. HTTP API (sketch)
+
+`POST /api/jobs` receives `{ "distro": "ubuntu", "release": "26.04", "arch":
+"amd64", "packages": ["nginx"] }` and returns `{ "job_id": "...", "status":
 "queued" }`.
 
-`GET /api/jobs/{job_id}` renvoie l'état : `queued`, `running`, `done` (avec
-`download_url`, `size`, `package_count`) ou `error` (avec `message`).
+`GET /api/jobs/{job_id}` returns the state: `queued`, `running`, `done` (with
+`download_url`, `size`, `package_count`) or `error` (with `message`).
 
-`GET /api/jobs/{job_id}/download` renvoie le `.zip` (`Content-Disposition:
-attachment`), ce qui déclenche le téléchargement direct dans le navigateur.
+`GET /api/jobs/{job_id}/download` returns the `.zip` (`Content-Disposition:
+attachment`), which triggers a direct browser download.
 
-`GET /api/distributions` renvoie la liste des couples distribution/version
-supportés, pour peupler dynamiquement les menus du frontend.
+`GET /api/distributions` returns the list of supported distribution/version
+pairs, to populate the frontend menus dynamically.
 
 ---
 
-## 10. Arborescence backend proposée
+## 10. Proposed backend layout
 
 ```
 deb-downloader-backend/
 ├── docker-compose.yml
 ├── api/
-│   ├── main.py            # routes FastAPI
-│   ├── models.py          # schémas Pydantic (validation des entrées)
-│   ├── queue.py           # enfilage RQ
-│   └── config.py          # quotas, distros supportées
+│   ├── main.py            # FastAPI routes
+│   ├── models.py          # Pydantic schemas (input validation)
+│   ├── queue.py           # RQ enqueue
+│   └── config.py          # quotas, supported distros
 ├── worker/
-│   ├── worker.py          # boucle RQ
-│   ├── fetch.py           # orchestration docker run + apt
+│   ├── worker.py          # RQ loop
+│   ├── fetch.py           # docker run + apt orchestration
 │   └── build_repo.py      # dpkg-scanpackages + zip + INSTALL.txt
 ├── shared/
-│   └── distros.py         # mapping distro/version -> image Docker
+│   └── distros.py         # distro/version -> Docker image mapping
 └── tests/
     └── test_fetch.py
 ```
 
----
-
-## 11. Périmètre du MVP & suite
-
-Le MVP valide le flux de bout en bout sur **une distribution, une version, un
-paquet** : `Ubuntu 26.04` + `nginx`, amd64, sortie `.zip`. Une fois ce chemin
-fonctionnel, on étend à **Debian 13**, puis au **multi-paquets**, puis aux
-**versions plus anciennes** des deux distributions, et enfin à **arm64**.
-
-Étapes concrètes dans l'ordre :
-
-1. Script `fetch.py` autonome (hors API) : `docker run` Ubuntu 26.04 → récupère
-   `nginx` + deps → produit un `.zip`. C'est le cœur ; on le valide en ligne de
-   commande d'abord.
-2. `build_repo.py` : génération `Packages.gz` + `INSTALL.txt` + zip.
-3. API FastAPI minimale (`POST /api/jobs`, `GET /api/jobs/{id}`, `/download`) avec
-   exécution synchrone d'abord, puis bascule sur Redis/RQ.
-4. Frontend applicatif de sélection (séparé de la vitrine) branché sur l'API.
-5. Durcissement : quotas, timeouts, isolation réseau, purge, apt-cacher-ng.
-6. Extension Debian 13, multi-paquets, anciennes versions, arm64.
+> The current MVP under `backend/` keeps this simpler: `fetch.py`,
+> `build_repo.py` and `distros.py` work as a standalone CLI; the API and queue
+> layers are the next step.
 
 ---
 
-## 12. Rappel déploiement
+## 11. MVP scope & next steps
 
-La **vitrine** (ce dépôt) reste 100 % statique, déployable par glisser-déposer.
-Le **moteur** ci-dessus se déploie séparément sur une VM Linux via
-`docker compose up -d`. Les deux ne partagent que l'API HTTP : le frontend
-applicatif pointe vers l'URL publique du backend.
+The MVP validates the end-to-end flow on **one distribution, one version, one
+package**: `Ubuntu 26.04` + `nginx`, amd64, `.zip` output. Once that path works,
+we extend to **Debian 13**, then **multi-package**, then **older versions** of
+both distributions, and finally **arm64**.
+
+Concrete steps, in order:
+
+1. Standalone `fetch.py` script (no API): `docker run` Ubuntu 26.04 → fetch
+   `nginx` + deps → produce a `.zip`. This is the core; validate it on the CLI
+   first. **(done in the current MVP)**
+2. `build_repo.py`: generate `Packages.gz` + `INSTALL.txt` + zip. **(done)**
+3. Minimal FastAPI API (`POST /api/jobs`, `GET /api/jobs/{id}`, `/download`) with
+   synchronous execution first, then switch to Redis/RQ.
+4. Application frontend (separate from the landing page) wired to the API.
+5. Hardening: quotas, timeouts, network isolation, purge, apt-cacher-ng.
+6. Extend to Debian 13, multi-package, older versions, arm64.
+
+---
+
+## 12. Deployment reminder
+
+The **landing site** (this repo) stays 100% static, deployable by drag-and-drop
+(see `DEPLOY.md` for self-hosting with nginx + Docker). The **engine** above is
+deployed separately on a Linux VM via `docker compose up -d`. The two only share
+the HTTP API: the application frontend points at the backend's public URL.

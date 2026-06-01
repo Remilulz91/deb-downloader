@@ -1,65 +1,72 @@
 # deb-downloader
 
-> Récupérez un paquet **Debian / Ubuntu** et **toutes ses dépendances**, prêts pour une installation **hors-ligne / air-gapped**, sans toucher à la ligne de commande.
+> Grab a **Debian / Ubuntu** package and **all of its dependencies**, ready for an **offline / air-gapped** install — without touching the command line.
 
-Copyright © 2026 **Remilulz91** — Tous droits réservés. Projet sous licence propriétaire (voir [`LICENSE`](LICENSE)).
+Copyright © 2026 **Remilulz91** — All rights reserved. Proprietary license (see [`LICENSE`](LICENSE)).
 
 ---
 
-## Ce dépôt
+## This repository
 
-Ce dépôt contient le **site web** de deb-downloader : une vitrine statique
-qui présente le projet et **indique automatiquement à l'utilisateur s'il
-dispose de la dernière version** (sans mise à jour automatique).
+This repository contains the **website** for deb-downloader: a static landing
+page that presents the project and **automatically tells visitors whether they
+are running the latest version** (no auto-update). The site is bilingual
+(English / French).
 
-Le site est **100 % statique** (HTML/CSS/JS, sans build ni dépendance) et
-se déploie par simple **glisser-déposer** sur n'importe quel hébergement.
+The site is **100% static** (HTML/CSS/JS, no build step, no dependencies) and
+deploys by simply **dropping the files** onto any web host.
 
 ```
 deb-downloader/
-├─ index.html      ← le site complet (CSS + JS intégrés)
-├─ 404.html        ← page d'erreur
-├─ LICENSE         ← licence propriétaire
-├─ CHANGELOG.md    ← historique des versions
-└─ README.md
+├─ index.html        ← the whole site (CSS + JS inlined), bilingual EN/FR
+├─ 404.html          ← error page
+├─ LICENSE           ← proprietary license
+├─ CHANGELOG.md      ← version history
+├─ DEPLOY.md         ← self-hosting tutorial (Debian 13 + nginx + Docker)
+├─ ARCHITECTURE.md   ← backend engine design
+├─ deploy/           ← ready-made nginx / Docker Compose / fail2ban configs
+└─ backend/          ← the package-fetching engine (separate component)
 ```
 
-## L'indicateur de version
+## The version indicator
 
-À l'ouverture, la page interroge l'API publique GitHub Releases
-(`/releases/latest`) et compare la **dernière version publiée** à la
-**version embarquée** dans la copie déployée. Elle affiche alors :
+On load, the page queries the public GitHub Releases API
+(`/releases/latest`) and compares the **latest published version** with the
+**version embedded** in the deployed copy. It then shows:
 
-- ✅ **À jour** — la copie correspond à la dernière release ;
-- ⚠️ **Mise à jour disponible** — une release plus récente existe (lien fourni) ;
-- ℹ️ / ❓ — aucune release publiée, ou vérification impossible (hors-ligne, quota API).
+- ✅ **Up to date** — the copy matches the latest release;
+- ⚠️ **Update available** — a newer release exists (link provided);
+- ℹ️ / ❓ — no release published yet, or the check failed (offline, API limit).
 
-> **À chaque nouvelle release :** modifiez `CONFIG.version` en haut du
-> bloc `<script>` dans `index.html` avec le tag publié (ex. `v0.2.0`),
-> puis publiez. C'est ce numéro qui sert de référence « cette copie ».
+> **On every new release:** update `CONFIG.version` near the top of the
+> `<script>` block in `index.html` with the published tag (e.g. `v0.2.0`),
+> then publish. That number is the "this copy" reference.
 
-## Déploiement (au choix, tous en glisser-déposer)
+## Deployment
 
-- **GitHub Pages** — Settings → Pages → branche `main`, dossier `/root`. Gratuit, lié au dépôt.
-- **Cloudflare Pages / Netlify** — glissez le dossier, ou connectez le dépôt.
-- **Hébergement mutualisé (FTP)** — déposez les fichiers dans le dossier web public.
+The website is static, so you have several easy options:
 
-Aucun serveur Linux, aucun nginx, aucun paquet à installer ne sont
-nécessaires **pour le site**.
+- **GitHub Pages** — Settings → Pages → branch `main`, folder `/root`. Free, tied to the repo.
+- **Cloudflare Pages / Netlify** — drag-and-drop the folder, or connect the repo.
+- **Shared hosting (FTP)** — drop the files into the public web folder.
+- **Self-hosting with nginx + Docker** — see [`DEPLOY.md`](DEPLOY.md) for a full
+  step-by-step tutorial (Debian 13, local HTTP, optional UFW + fail2ban).
 
-> ℹ️ Le **moteur** qui récupère réellement les `.deb` (résolution des
-> dépendances via `apt` dans des conteneurs Docker) s'exécute côté
-> serveur et fait l'objet d'un développement séparé. Cette partie, elle,
-> nécessite un hôte Linux + Docker.
+No Linux server, nginx config or package install is required **for the site**
+unless you choose to self-host it.
 
-## Contribuer
+> ℹ️ The **engine** that actually fetches the `.deb` files (dependency
+> resolution via `apt` inside Docker containers) runs server-side and is
+> developed separately under `backend/`. That part does require a Linux host
+> with Docker.
 
-Les retours de la communauté sont les bienvenus : ouvrez une
-[issue](https://github.com/Remilulz91/deb-downloader/issues) pour signaler
-un bug ou proposer une idée. **Seul l'auteur publie les versions
-officielles.**
+## Contributing
 
-## Licence
+Community feedback is welcome: open an
+[issue](https://github.com/Remilulz91/deb-downloader/issues) to report a bug or
+suggest an idea. **Only the author publishes official releases.**
 
-Projet **propriétaire**. Réutilisation, redistribution ou appropriation
-interdites sans autorisation écrite. Voir [`LICENSE`](LICENSE).
+## License
+
+**Proprietary** project. Reuse, redistribution or appropriation prohibited
+without written permission. See [`LICENSE`](LICENSE).

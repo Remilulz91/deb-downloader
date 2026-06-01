@@ -1,36 +1,36 @@
 <!--
-  Modèle de notes de release pour deb-downloader.
-  Copiez ce contenu dans le champ "notes" de la release GitHub
-  (ou dans : gh release create vX.Y.Z --notes-file ...).
-  Supprimez les sections vides et les commentaires <!-- -->.
-  Versionnage sémantique : MAJOR.MINOR.PATCH (vX.Y.Z).
+  Release notes template for deb-downloader.
+  Paste this into the GitHub release "notes" field
+  (or: gh release create vX.Y.Z --notes-file ...).
+  Remove empty sections and the <!-- --> comments.
+  Semantic versioning: MAJOR.MINOR.PATCH (vX.Y.Z).
 -->
 
-## deb-downloader vX.Y.Z — <titre court du thème de la version>
+## deb-downloader vX.Y.Z — <short theme of the release>
 
-<!-- 1–2 phrases qui résument l'intérêt de cette version pour l'utilisateur. -->
-Résumé : …
+<!-- 1-2 sentences summarizing why this release matters to users. -->
+Summary: …
 
-### ✨ Nouveautés
+### ✨ New
 - …
 
-### 🛠️ Améliorations
+### 🛠️ Improvements
 - …
 
-### 🐞 Corrections de bugs
-- … (#numéro d'issue si applicable)
+### 🐞 Bug fixes
+- … (#issue number if applicable)
 
-### ⚠️ Changements notables / migration
-<!-- À remplir uniquement si une action de l'utilisateur est nécessaire. -->
-- Aucun.
+### ⚠️ Notable changes / migration
+<!-- Fill in only if the user must take action. -->
+- None.
 
-### 📦 Distributions prises en charge
+### 📦 Supported distributions
 - Debian 13, Ubuntu 26.04 (amd64)
 
 ---
-ℹ️ **Rappel :** ce site n'a pas de mise à jour automatique. Cette release met
-à jour la version de référence affichée par l'indicateur. Pour déployer,
-récupérez la dernière version et redéployez (glisser-déposer).
+ℹ️ **Reminder:** this site has no auto-update. This release updates the
+reference version shown by the indicator. To deploy, pull the latest version
+and redeploy (drag-and-drop).
 
-Détails complets : voir [`CHANGELOG.md`](../blob/main/CHANGELOG.md).
-© 2026 Remilulz91 — Tous droits réservés.
+Full details: see [`CHANGELOG.md`](../blob/main/CHANGELOG.md).
+© 2026 Remilulz91 — All rights reserved.

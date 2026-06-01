@@ -1,0 +1,25 @@
+# deb-downloader — optional fail2ban configuration.
+# Copy to /etc/fail2ban/jail.local then: sudo systemctl restart fail2ban
+# See DEPLOY.md for the full, optional walkthrough.
+
+[DEFAULT]
+# Ban for 1 hour after 5 failures within 10 minutes.
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+# Debian 13 ships sshd logs in the systemd journal.
+backend  = systemd
+
+# Protect SSH (useful as soon as the machine is reachable on the network).
+[sshd]
+enabled = true
+
+# --- OPTIONAL: protect nginx --------------------------------------------
+# nginx runs inside Docker and logs to the container by default. To make
+# this jail work you must expose the nginx logs to the host: uncomment the
+# log volume in deploy/docker-compose.yml, create the folder, and recreate
+# the container (see DEPLOY.md). Then set "enabled = true".
+[nginx-bad-request]
+enabled = false
+port    = http
+logpath = /var/log/deb-downloader-nginx/error.log

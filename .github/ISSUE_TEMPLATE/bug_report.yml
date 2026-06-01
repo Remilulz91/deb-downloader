@@ -1,60 +1,60 @@
-name: 🐞 Signaler un bug
-description: Signaler un dysfonctionnement de deb-downloader
+name: 🐞 Bug report
+description: Report a malfunction in deb-downloader
 title: "[Bug] "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci de contribuer ! Décrivez le problème le plus précisément possible.
-        Rappel : seul l'auteur (Remilulz91) publie les versions officielles.
+        Thanks for contributing! Please describe the problem as precisely as possible.
+        Reminder: only the author (Remilulz91) publishes official releases.
   - type: textarea
     id: description
     attributes:
-      label: Description du bug
-      description: Que se passe-t-il ? Qu'attendiez-vous à la place ?
+      label: Bug description
+      description: What happens? What did you expect instead?
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Étapes pour reproduire
+      label: Steps to reproduce
       placeholder: |
-        1. Aller sur …
-        2. Choisir …
-        3. Cliquer sur …
-        4. Voir l'erreur
+        1. Go to …
+        2. Choose …
+        3. Click …
+        4. See the error
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: Version de deb-downloader
-      description: Visible dans la bannière du site (ex. v0.1.0)
+      label: deb-downloader version
+      description: Shown in the site banner (e.g. v0.1.0)
       placeholder: "v0.1.0"
     validations:
       required: true
   - type: dropdown
     id: distro
     attributes:
-      label: Distribution concernée (si applicable)
+      label: Affected distribution (if applicable)
       options:
-        - Non applicable / site uniquement
+        - Not applicable / website only
         - Debian 13
         - Ubuntu 26.04
-        - Autre (préciser ci-dessous)
+        - Other (specify below)
     validations:
       required: false
   - type: input
     id: env
     attributes:
-      label: Navigateur / OS
-      placeholder: "Firefox 128 sur Windows 11"
+      label: Browser / OS
+      placeholder: "Firefox 128 on Windows 11"
     validations:
       required: false
   - type: textarea
     id: extra
     attributes:
-      label: Captures d'écran / logs / contexte
+      label: Screenshots / logs / context
     validations:
       required: false
