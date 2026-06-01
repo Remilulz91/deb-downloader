@@ -85,8 +85,11 @@ def docker_command(image, arch, out_host, script, limits):
         "--memory", limits["memory"],
         "--cpus", limits["cpus"],
         "--pids-limit", limits["pids_limit"],
-        # security: no privileges, no docker socket mounted
+        # security: drop all caps, no privilege escalation, no docker socket.
+        # DAC_OVERRIDE is added back so the container root can write the .deb
+        # files into the bind-mounted /out (owned by the host user).
         "--cap-drop", "ALL",
+        "--cap-add", "DAC_OVERRIDE",
         "--security-opt", "no-new-privileges",
         "-v", f"{out_host}:/out",
         image,

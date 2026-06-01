@@ -50,6 +50,8 @@
     border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px;margin-right:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
   footer{color:var(--text-dim);font-size:.8rem;margin-top:24px;text-align:center}
+  footer a{color:var(--text-dim);text-decoration:none}
+  footer a:hover{color:var(--text)}
 </style>
 </head>
 <body>
@@ -85,7 +87,7 @@
     <div id="status" class="status"></div>
   </div>
 
-  <footer id="footer"></footer>
+  <footer><a id="homelink" href="/"></a> · <span id="footer"></span></footer>
 </div>
 
 <script>
@@ -97,6 +99,7 @@ var I18N = {
     hint: "Lowercase names only — letters, digits and + . _ -.",
     norec: "Exclude recommended packages",
     go: "⬇️ Fetch & download .zip",
+    home: "← Home",
     footer: "© 2026 Remilulz91 — deb-downloader. All rights reserved.",
     noPkg: "Please enter at least one package.",
     apiErr: "Could not reach the API.",
@@ -111,6 +114,7 @@ var I18N = {
     hint: "Noms en minuscules uniquement — lettres, chiffres et + . _ -.",
     norec: "Exclure les paquets recommandés",
     go: "⬇️ Récupérer & télécharger le .zip",
+    home: "← Accueil",
     footer: "© 2026 Remilulz91 — deb-downloader. Tous droits réservés.",
     noPkg: "Veuillez saisir au moins un paquet.",
     apiErr: "Impossible de joindre l'API.",
@@ -140,6 +144,7 @@ function applyLang(){
   document.getElementById("hint").textContent = t("hint");
   document.getElementById("lbl-norec").textContent = t("norec");
   document.getElementById("footer").innerHTML = t("footer");
+  document.getElementById("homelink").textContent = t("home");
   goBtn.textContent = t("go");
   pkgInput.setAttribute("placeholder", t("placeholder"));
   var btns = document.querySelectorAll(".lang button");
