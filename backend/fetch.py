@@ -59,12 +59,17 @@ def container_script(packages, no_recommends=False):
     rec = "--no-install-recommends " if no_recommends else ""
     # packages are already validated -> safe to interpolate; quote them anyway.
     pkgs = " ".join(shlex.quote(p) for p in packages)
+    # APT::Sandbox::User=root keeps apt running as root instead of dropping to
+    # the "_apt" user. We harden the container with --cap-drop ALL, which removes
+    # the SETUID/SETGID capabilities apt would need to switch users — without
+    # this option the download method fails ("setgroups: Operation not permitted").
+    apt = "apt-get -o APT::Sandbox::User=root"
     return (
         "set -e; export DEBIAN_FRONTEND=noninteractive; "
-        "apt-get update -qq; "
+        f"{apt} update -qq; "
         "mkdir -p /out/debs; "
         "rm -f /var/cache/apt/archives/*.deb || true; "
-        f"apt-get install -y {rec}--download-only {pkgs}; "
+        f"{apt} install -y {rec}--download-only {pkgs}; "
         "cp /var/cache/apt/archives/*.deb /out/debs/ 2>/dev/null || true; "
         # marker: number of fetched .deb files
         "ls -1 /out/debs/*.deb | wc -l > /out/.count"

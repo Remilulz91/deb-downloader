@@ -122,7 +122,8 @@
     <h1 data-i18n="hero.h1"></h1>
     <p class="lead" data-i18n="hero.lead"></p>
     <div class="cta-row">
-      <a id="cta-download" class="btn btn-primary" href="#" target="_blank" rel="noopener" data-i18n="hero.download"></a>
+      <a id="cta-tool" class="btn btn-primary" href="/app/" style="display:none" data-i18n="hero.tool"></a>
+      <a id="cta-download" class="btn btn-ghost" href="#" target="_blank" rel="noopener" data-i18n="hero.download"></a>
       <a class="btn btn-ghost" href="#comment" data-i18n="hero.howbtn"></a>
     </div>
     <div id="version-banner" class="version-banner is-loading" role="status" aria-live="polite">
@@ -185,7 +186,7 @@
 <script>
 /* deb-downloader — i18n (FR/EN) + indicateur de version. 100% navigateur.
    A CHAQUE RELEASE : mettre a jour CONFIG.version. */
-var CONFIG = { owner:"Remilulz91", repo:"deb-downloader", version:"v0.5.4" };
+var CONFIG = { owner:"Remilulz91", repo:"deb-downloader", version:"v0.5.5" };
 var GH_REPO_URL   = "https://github.com/" + CONFIG.owner + "/" + CONFIG.repo;
 var GH_API_LATEST = "https://api.github.com/repos/" + CONFIG.owner + "/" + CONFIG.repo + "/releases/latest";
 
@@ -195,7 +196,7 @@ var I18N = {
     "nav.features":"Fonctions", "nav.how":"Comment ça marche", "nav.contribute":"Contribuer",
     "hero.h1":"Vos paquets <span class='grad'>.deb</span><br/>et toutes leurs dépendances",
     "hero.lead":"Choisissez votre distribution, tapez le nom d'un paquet, récupérez l'archive complète prête pour une installation <b>hors-ligne / air-gapped</b>. Sans toucher à la ligne de commande.",
-    "hero.download":"⬇️ Télécharger la dernière version", "hero.howbtn":"Comment ça marche",
+    "hero.download":"⬇️ Télécharger la dernière version", "hero.howbtn":"Comment ça marche", "hero.tool":"🛠️ Ouvrir l'outil",
     "features.h2":"Ce que fait deb-downloader",
     "features.sub":"L'outil délègue la résolution des dépendances à apt lui-même, dans un conteneur de la distribution cible — le résultat correspond exactement à votre version.",
     "feat1.t":"Paquet + dépendances","feat1.d":"Récupère le paquet demandé et l'arbre complet de ses dépendances, sans rien oublier.",
@@ -225,7 +226,7 @@ var I18N = {
     "nav.features":"Features", "nav.how":"How it works", "nav.contribute":"Contribute",
     "hero.h1":"Your <span class='grad'>.deb</span> packages<br/>and all their dependencies",
     "hero.lead":"Pick your distribution, type a package name, get the full archive ready for an <b>offline / air-gapped</b> install. Without touching the command line.",
-    "hero.download":"⬇️ Download the latest version", "hero.howbtn":"How it works",
+    "hero.download":"⬇️ Download the latest version", "hero.howbtn":"How it works", "hero.tool":"🛠️ Open the tool",
     "features.h2":"What deb-downloader does",
     "features.sub":"The tool delegates dependency resolution to apt itself, inside a container of the target distribution — so the result matches your version exactly.",
     "feat1.t":"Package + dependencies","feat1.d":"Fetches the requested package and its full dependency tree, leaving nothing out.",
@@ -277,6 +278,10 @@ function setLang(lang){
 (function(){
   var links = [["nav-gh", GH_REPO_URL],["footer-gh", GH_REPO_URL],["cta-download", GH_REPO_URL + "/releases/latest"]];
   for (var i=0;i<links.length;i++){ var el = document.getElementById(links[i][0]); if (el) el.href = links[i][1]; }
+  // "Open the tool" points to the reverse-proxied API (/app). Only show it when
+  // a backend likely exists — i.e. not on GitHub Pages (github.io).
+  var tool = document.getElementById("cta-tool");
+  if (tool && !/\.github\.io$/i.test(location.hostname)) { tool.style.display = ""; }
 })();
 
 function compareVersions(a, b){

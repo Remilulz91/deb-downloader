@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>deb-downloader — fetch packages</title>
+<title>deb-downloader</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <style>
   :root{
@@ -14,15 +14,20 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:radial-gradient(1100px 500px at 70% -10%,#1a2330 0%,var(--bg) 55%);
-    color:var(--text);min-height:100vh;line-height:1.6;padding:40px 18px}
+    color:var(--text);min-height:100vh;line-height:1.6;padding:34px 18px}
   .wrap{max-width:640px;margin:0 auto}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.4rem;margin-bottom:6px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.4rem}
   .brand .dot{width:13px;height:13px;border-radius:50%;
     background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 0 12px var(--accent)}
+  .lang{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .lang button{background:transparent;color:var(--text-dim);border:none;cursor:pointer;
+    padding:6px 11px;font-size:.85rem;font-weight:700;transition:background .15s,color .15s}
+  .lang button.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
   .sub{color:var(--text-dim);margin-bottom:26px}
   .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
   label{display:block;font-weight:600;margin:16px 0 6px}
-  label:first-child{margin-top:0}
+  label.lbl-first{margin-top:0}
   select,input[type=text]{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--border);
     background:var(--bg-soft);color:var(--text);font-size:1rem}
   .row{display:flex;gap:14px}
@@ -30,12 +35,12 @@
   .check{display:flex;align-items:center;gap:9px;margin-top:16px;color:var(--text-dim);font-weight:400}
   .check input{width:auto}
   .hint{color:var(--text-dim);font-size:.85rem;margin-top:5px}
-  button{margin-top:22px;width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;
+  button.go{margin-top:22px;width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;
     font-size:1.05rem;font-weight:700;color:#fff;
     background:linear-gradient(135deg,var(--accent),var(--accent-2));
     box-shadow:0 6px 20px rgba(215,10,83,.35);transition:transform .12s,opacity .2s}
-  button:hover:not(:disabled){transform:translateY(-2px)}
-  button:disabled{opacity:.55;cursor:not-allowed}
+  button.go:hover:not(:disabled){transform:translateY(-2px)}
+  button.go:disabled{opacity:.55;cursor:not-allowed}
   .status{margin-top:18px;padding:14px 16px;border-radius:10px;display:none;font-size:.95rem}
   .status.show{display:block}
   .status.work{background:rgba(56,139,253,.12);border:1px solid var(--info);color:#cfe3ff}
@@ -49,63 +54,108 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><span class="dot"></span> deb-downloader</div>
-  <p class="sub">Pick a distribution, type one or more packages, and download a <b>.zip</b>
-     containing the packages plus all their dependencies (offline-ready).</p>
+  <div class="top">
+    <div class="brand"><span class="dot"></span> deb-downloader</div>
+    <div class="lang" role="group" aria-label="Language">
+      <button data-lang="fr" type="button">FR</button>
+      <button data-lang="en" type="button">EN</button>
+    </div>
+  </div>
+  <p class="sub" id="sub"></p>
 
   <div class="card">
     <div class="row">
       <div>
-        <label for="distro">Distribution</label>
+        <label class="lbl-first" id="lbl-distro" for="distro"></label>
         <select id="distro"></select>
       </div>
       <div>
-        <label for="release">Version</label>
+        <label class="lbl-first" id="lbl-release" for="release"></label>
         <select id="release"></select>
       </div>
     </div>
 
-    <label for="packages">Package(s)</label>
-    <input type="text" id="packages" placeholder="e.g. nginx  (space or comma separated)" />
-    <div class="hint">Lowercase names only — letters, digits and <code>+ . _ -</code>.</div>
+    <label id="lbl-packages" for="packages"></label>
+    <input type="text" id="packages" />
+    <div class="hint" id="hint"></div>
 
-    <label class="check"><input type="checkbox" id="norec" /> Exclude recommended packages (<code>--no-install-recommends</code>)</label>
+    <label class="check"><input type="checkbox" id="norec" /> <span id="lbl-norec"></span> (<code>--no-install-recommends</code>)</label>
 
-    <button id="go">⬇️ Fetch &amp; download .zip</button>
+    <button class="go" id="go"></button>
     <div id="status" class="status"></div>
   </div>
 
-  <footer>© 2026 Remilulz91 — deb-downloader. All rights reserved.</footer>
+  <footer id="footer"></footer>
 </div>
 
 <script>
+var I18N = {
+  en: {
+    sub: "Pick a distribution, type one or more packages, and download a <b>.zip</b> containing the packages plus all their dependencies (offline-ready).",
+    distro: "Distribution", release: "Version", packages: "Package(s)",
+    placeholder: "e.g. nginx  (space or comma separated)",
+    hint: "Lowercase names only — letters, digits and + . _ -.",
+    norec: "Exclude recommended packages",
+    go: "⬇️ Fetch & download .zip",
+    footer: "© 2026 Remilulz91 — deb-downloader. All rights reserved.",
+    noPkg: "Please enter at least one package.",
+    apiErr: "Could not reach the API.",
+    working: '<span class="spin"></span>Fetching {pkgs} for {distro} {release}… This can take a while.',
+    done: "✅ Done — your download (<b>{name}</b>) has started.",
+    failPrefix: "❌ "
+  },
+  fr: {
+    sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
+    distro: "Distribution", release: "Version", packages: "Paquet(s)",
+    placeholder: "ex. nginx  (séparés par espace ou virgule)",
+    hint: "Noms en minuscules uniquement — lettres, chiffres et + . _ -.",
+    norec: "Exclure les paquets recommandés",
+    go: "⬇️ Récupérer & télécharger le .zip",
+    footer: "© 2026 Remilulz91 — deb-downloader. Tous droits réservés.",
+    noPkg: "Veuillez saisir au moins un paquet.",
+    apiErr: "Impossible de joindre l'API.",
+    working: '<span class="spin"></span>Récupération de {pkgs} pour {distro} {release}… Cela peut prendre un moment.',
+    done: "✅ Terminé — votre téléchargement (<b>{name}</b>) a démarré.",
+    failPrefix: "❌ "
+  }
+};
+
+var lang = "en";
+function t(k){ return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+
 var distroSel = document.getElementById("distro");
 var releaseSel = document.getElementById("release");
 var pkgInput = document.getElementById("packages");
 var norec = document.getElementById("norec");
 var goBtn = document.getElementById("go");
 var statusEl = document.getElementById("status");
+var MAP = {};
 
-var MAP = {};   // distro -> [releases]
-
-function setStatus(kind, html){
-  statusEl.className = "status show " + kind;
-  statusEl.innerHTML = html;
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.getElementById("sub").innerHTML = t("sub");
+  document.getElementById("lbl-distro").textContent = t("distro");
+  document.getElementById("lbl-release").textContent = t("release");
+  document.getElementById("lbl-packages").textContent = t("packages");
+  document.getElementById("hint").textContent = t("hint");
+  document.getElementById("lbl-norec").textContent = t("norec");
+  document.getElementById("footer").innerHTML = t("footer");
+  goBtn.textContent = t("go");
+  pkgInput.setAttribute("placeholder", t("placeholder"));
+  var btns = document.querySelectorAll(".lang button");
+  for (var i=0;i<btns.length;i++){ btns[i].classList.toggle("active", btns[i].getAttribute("data-lang")===lang); }
 }
-function clearStatus(){ statusEl.className = "status"; statusEl.innerHTML = ""; }
+function setLang(l){ lang = (l==="fr")?"fr":"en"; try{localStorage.setItem("ddl_lang",lang);}catch(e){} applyLang(); }
+
+function setStatus(kind, html){ statusEl.className = "status show " + kind; statusEl.innerHTML = html; }
 
 function fillReleases(){
-  var d = distroSel.value;
-  releaseSel.innerHTML = "";
+  var d = distroSel.value; releaseSel.innerHTML = "";
   (MAP[d] || []).forEach(function(r){
-    var o = document.createElement("option"); o.value = r; o.textContent = r;
-    releaseSel.appendChild(o);
+    var o = document.createElement("option"); o.value = r; o.textContent = r; releaseSel.appendChild(o);
   });
 }
 
-// Load supported distributions from the API.
-// Relative paths so the page works both standalone (:8000) and behind the
-// reverse proxy (served under /app/).
 fetch("api/distributions")
   .then(function(r){ return r.json(); })
   .then(function(data){
@@ -120,35 +170,30 @@ fetch("api/distributions")
     });
     fillReleases();
   })
-  .catch(function(){ setStatus("err", "Could not reach the API."); });
+  .catch(function(){ setStatus("err", t("apiErr")); });
 
 distroSel.addEventListener("change", fillReleases);
 
 goBtn.addEventListener("click", function(){
   var packages = pkgInput.value.split(/[\s,]+/).filter(Boolean);
-  if(packages.length === 0){ setStatus("err", "Please enter at least one package."); return; }
+  if(packages.length === 0){ setStatus("err", t("noPkg")); return; }
 
   var body = {
-    distro: distroSel.value,
-    release: releaseSel.value,
-    arch: "amd64",
-    packages: packages,
-    no_recommends: norec.checked
+    distro: distroSel.value, release: releaseSel.value, arch: "amd64",
+    packages: packages, no_recommends: norec.checked
   };
 
   goBtn.disabled = true;
-  setStatus("work", '<span class="spin"></span>Fetching ' + packages.join(", ") +
-    ' for ' + distroSel.value + ' ' + releaseSel.value + '… This can take a while.');
+  setStatus("work", t("working")
+    .replace("{pkgs}", packages.join(", "))
+    .replace("{distro}", distroSel.value)
+    .replace("{release}", releaseSel.value));
 
   fetch("api/fetch", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(body)
+    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
   })
   .then(function(res){
-    if(!res.ok){
-      return res.json().then(function(j){ throw new Error(j.detail || ("HTTP " + res.status)); });
-    }
+    if(!res.ok){ return res.json().then(function(j){ throw new Error(j.detail || ("HTTP " + res.status)); }); }
     var name = "packages.zip";
     var cd = res.headers.get("Content-Disposition") || "";
     var m = cd.match(/filename="?([^"]+)"?/);
@@ -160,13 +205,21 @@ goBtn.addEventListener("click", function(){
     var a = document.createElement("a");
     a.href = url; a.download = out.name; document.body.appendChild(a); a.click();
     a.remove(); URL.revokeObjectURL(url);
-    setStatus("ok", "✅ Done — your download (<b>" + out.name + "</b>) has started.");
+    setStatus("ok", t("done").replace("{name}", out.name));
   })
-  .catch(function(err){
-    setStatus("err", "❌ " + err.message);
-  })
+  .catch(function(err){ setStatus("err", t("failPrefix") + err.message); })
   .finally(function(){ goBtn.disabled = false; });
 });
+
+// init language: saved choice > browser > English
+(function(){
+  var saved=null; try{ saved=localStorage.getItem("ddl_lang"); }catch(e){}
+  var nav=(navigator.language||"en").toLowerCase();
+  lang = saved || (nav.indexOf("fr")===0 ? "fr" : "en");
+  var btns=document.querySelectorAll(".lang button");
+  for(var i=0;i<btns.length;i++){ (function(b){ b.addEventListener("click", function(){ setLang(b.getAttribute("data-lang")); }); })(btns[i]); }
+  applyLang();
+})();
 </script>
 </body>
 </html>

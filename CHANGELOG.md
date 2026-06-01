@@ -5,6 +5,18 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.5] — 2026-06-01
+### Fixed
+- **Fetch now works with the hardened container**: apt runs with
+  `APT::Sandbox::User=root`, so package downloads no longer fail with
+  "setgroups: Operation not permitted" under `--cap-drop ALL`.
+
+### Added
+- The **tool UI is now bilingual** (EN / FR) with a language toggle, like the
+  landing page.
+- The landing page shows an **"Open the tool"** button linking to `/app`
+  (shown only when a backend exists; hidden on GitHub Pages).
+
 ## [v0.5.4] — 2026-06-01
 ### Added
 - **Reverse proxy**: the website now serves the tool at `http://<ip>/app`
@@ -129,6 +141,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.5]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.5
 [v0.5.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.4
 [v0.5.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.3
 [v0.5.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.2
