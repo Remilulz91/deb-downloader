@@ -5,6 +5,13 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.6.1] — 2026-06-01
+### Fixed
+- The tool page (`/app`) is now served with **no-cache** headers, so a new
+  version is picked up immediately after an update. Previously the browser could
+  keep a cached old page that called the removed `/api/fetch` endpoint, making
+  the interface appear broken until a manual hard refresh.
+
 ## [v0.6.0] — 2026-06-01
 ### Changed
 - **Fetches are now asynchronous.** Submitting a fetch no longer blocks the HTTP
@@ -186,6 +193,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.6.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.0
 [v0.5.8]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.8
 [v0.5.7]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.7

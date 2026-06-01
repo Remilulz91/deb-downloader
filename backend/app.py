@@ -72,10 +72,16 @@ class FetchRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def ui():
-    """Serve the minimal selection UI."""
+    """Serve the minimal selection UI.
+
+    Sent with no-cache headers so a new version is picked up immediately after an
+    update (otherwise a stale cached page may call removed endpoints).
+    """
+    headers = {"Cache-Control": "no-cache, no-store, must-revalidate"}
     if UI_PATH.exists():
-        return HTMLResponse(UI_PATH.read_text(encoding="utf-8"))
-    return HTMLResponse("<h1>deb-downloader API</h1><p>See <a href='/docs'>/docs</a>.</p>")
+        return HTMLResponse(UI_PATH.read_text(encoding="utf-8"), headers=headers)
+    return HTMLResponse("<h1>deb-downloader API</h1><p>See <a href='/docs'>/docs</a>.</p>",
+                        headers=headers)
 
 
 @app.get("/favicon.svg", include_in_schema=False)
