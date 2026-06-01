@@ -39,18 +39,32 @@ DEFAULTS = {
 }
 
 
+class FetchError(Exception):
+    """A user-facing error with a machine-readable code (for i18n in the UI)."""
+    def __init__(self, code, message, **data):
+        super().__init__(message)
+        self.code = code
+        self.data = data
+
+
 def validate(distro, release, arch, packages):
-    """Validate the input. Raises ValueError on any problem."""
-    image = distros.image_for(distro, release)  # raises if unsupported
+    """Validate the input. Raises FetchError on any problem."""
+    try:
+        image = distros.image_for(distro, release)
+    except ValueError:
+        raise FetchError("unsupported_distro",
+                         f"Unsupported distribution: {distro} {release}.",
+                         distro=distro, release=release)
     if arch not in distros.ARCHES:
-        raise ValueError(f"Unsupported architecture: {arch} (MVP: {sorted(distros.ARCHES)}).")
+        raise FetchError("bad_arch", f"Unsupported architecture: {arch}.", arch=arch)
     if not packages:
-        raise ValueError("No package requested.")
+        raise FetchError("no_packages", "No package requested.")
     if len(packages) > DEFAULTS["max_packages"]:
-        raise ValueError(f"Too many packages (max {DEFAULTS['max_packages']}).")
+        raise FetchError("too_many", f"Too many packages (max {DEFAULTS['max_packages']}).",
+                         max=DEFAULTS["max_packages"])
     bad = [p for p in packages if not PKG_RE.match(p)]
     if bad:
-        raise ValueError(f"Invalid package name(s): {bad}")
+        raise FetchError("invalid_names", f"Invalid package name(s): {bad}", names=bad)
     return image
 
 
@@ -116,10 +130,31 @@ def run(distro, release, arch, packages, out_dir=None,
         return None
 
     if shutil.which("docker") is None:
-        raise RuntimeError("Docker not found on the host.")
+        raise FetchError("docker_missing", "Docker not found on the host.")
 
     print(f"[*] Fetching {packages} for {distro} {release} ({arch})...")
-    subprocess.run(cmd, check=True, timeout=limits["timeout"])
+    try:
+        subprocess.run(cmd, check=True, timeout=limits["timeout"],
+                       capture_output=True, text=True)
+    except subprocess.TimeoutExpired:
+        raise FetchError("timeout", "The fetch timed out.")
+    except subprocess.CalledProcessError as e:
+        output = (e.stdout or "") + "\n" + (e.stderr or "")
+        # Keep the full container output in the journal for debugging.
+        sys.stderr.write(output)
+        # Detect "package not found" cases from apt's output.
+        notfound = sorted(set(
+            re.findall(r"Unable to locate package (\S+)", output)
+            + re.findall(r"Package '([^']+)' has no installation candidate", output)
+            + re.findall(r"Couldn't find any package by regex '([^']+)'", output)
+        ))
+        if notfound:
+            raise FetchError("package_not_found",
+                             "Package(s) not found: " + ", ".join(notfound),
+                             packages=notfound)
+        # Otherwise surface a short, clean tail of the error (no command dump).
+        tail = [ln for ln in output.strip().splitlines() if ln.strip()][-4:]
+        raise FetchError("fetch_failed", "\n".join(tail) or "The fetch failed.")
 
     safe_pkg = "-".join(packages)
     zip_name = f"{safe_pkg}_{distro}-{release}_{arch}.zip"
@@ -144,12 +179,9 @@ def main(argv=None):
         run(a.distro, a.release, a.arch, a.packages, out_dir=a.out,
             no_recommends=a.no_recommends, limits={"timeout": a.timeout},
             dry_run=a.dry_run)
-    except (ValueError, RuntimeError) as e:
-        print(f"[ERROR] {e}", file=sys.stderr)
+    except FetchError as e:
+        print(f"[ERROR] ({e.code}) {e}", file=sys.stderr)
         return 2
-    except subprocess.TimeoutExpired:
-        print("[ERROR] Timeout exceeded.", file=sys.stderr)
-        return 3
     return 0
 
 

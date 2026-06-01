@@ -89,8 +89,9 @@ def api_fetch(req: FetchRequest):
     # Reuse the engine's strict validation (distro supported, safe pkg names).
     try:
         fetch.validate(req.distro, req.release, req.arch, req.packages)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except fetch.FetchError as e:
+        raise HTTPException(status_code=400,
+                            detail={"code": e.code, "message": str(e), **e.data})
 
     out_dir = Path(tempfile.mkdtemp(prefix="ddl_api_"))
     try:
@@ -98,12 +99,16 @@ def api_fetch(req: FetchRequest):
             req.distro, req.release, req.arch, req.packages,
             out_dir=out_dir, no_recommends=req.no_recommends,
         )
-    except RuntimeError as e:                 # e.g. Docker not installed
+    except fetch.FetchError as e:
         _cleanup(out_dir)
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:                    # docker/apt failure, timeout, etc.
+        status = {"docker_missing": 503, "timeout": 504,
+                  "package_not_found": 422, "fetch_failed": 502}.get(e.code, 400)
+        raise HTTPException(status_code=status,
+                            detail={"code": e.code, "message": str(e), **e.data})
+    except Exception as e:                    # unexpected (e.g. zip/index build)
         _cleanup(out_dir)
-        raise HTTPException(status_code=500, detail=f"fetch failed: {e}")
+        raise HTTPException(status_code=500,
+                            detail={"code": "internal", "message": str(e)})
 
     # Delete the temporary files once the response has been sent.
     return FileResponse(

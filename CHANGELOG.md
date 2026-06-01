@@ -5,6 +5,16 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.7] — 2026-06-01
+### Changed
+- **Clean, localized error messages.** When a fetch fails — e.g. an unknown
+  package such as `apache` (the Debian package is `apache2`) — the tool now
+  shows a friendly bilingual message ("Package(s) not found: apache…") instead
+  of the raw Docker command dump. The API returns structured error codes and
+  the UI translates them (FR/EN), with a graceful fallback for unexpected
+  errors. The full container output is still written to the journal for
+  debugging.
+
 ## [v0.5.6] — 2026-06-01
 ### Fixed
 - Fetch failed with exit status 1: `--cap-drop ALL` also removed
@@ -151,6 +161,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.5.7]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.7
 [v0.5.6]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.6
 [v0.5.5]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.5
 [v0.5.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.4

@@ -105,7 +105,11 @@ var I18N = {
     apiErr: "Could not reach the API.",
     working: '<span class="spin"></span>Fetching {pkgs} for {distro} {release}… This can take a while.',
     done: "✅ Done — your download (<b>{name}</b>) has started.",
-    failPrefix: "❌ "
+    failPrefix: "❌ ",
+    errNotFound: 'Package(s) not found: {pkgs}. Check the exact name — on Debian/Ubuntu it is often e.g. "apache2", not "apache".',
+    errInvalid: "Invalid package name(s): {names}. Use lowercase letters, digits and + . _ -.",
+    errTooMany: "Too many packages (max {max}).",
+    errFetch: "The fetch failed. Check the package name and try again."
   },
   fr: {
     sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
@@ -120,12 +124,27 @@ var I18N = {
     apiErr: "Impossible de joindre l'API.",
     working: '<span class="spin"></span>Récupération de {pkgs} pour {distro} {release}… Cela peut prendre un moment.',
     done: "✅ Terminé — votre téléchargement (<b>{name}</b>) a démarré.",
-    failPrefix: "❌ "
+    failPrefix: "❌ ",
+    errNotFound: "Paquet(s) introuvable(s) : {pkgs}. Vérifiez le nom exact — sur Debian/Ubuntu c'est souvent « apache2 », pas « apache ».",
+    errInvalid: "Nom(s) de paquet invalide(s) : {names}. Utilisez minuscules, chiffres et + . _ -.",
+    errTooMany: "Trop de paquets (max {max}).",
+    errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez."
   }
 };
 
 var lang = "en";
 function t(k){ return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+
+// Turn a structured API error ({code, message, ...}) into a localized string.
+function localizeError(d){
+  if(!d) return t("errFetch");
+  switch(d.code){
+    case "package_not_found": return t("errNotFound").replace("{pkgs}", (d.packages||[]).join(", "));
+    case "invalid_names":      return t("errInvalid").replace("{names}", (d.names||[]).join(", "));
+    case "too_many":           return t("errTooMany").replace("{max}", d.max);
+    default:                   return d.message || t("errFetch");
+  }
+}
 
 var distroSel = document.getElementById("distro");
 var releaseSel = document.getElementById("release");
@@ -198,7 +217,16 @@ goBtn.addEventListener("click", function(){
     method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
   })
   .then(function(res){
-    if(!res.ok){ return res.json().then(function(j){ throw new Error(j.detail || ("HTTP " + res.status)); }); }
+    if(!res.ok){
+      return res.json().then(function(j){
+        var d = j && j.detail;
+        var msg;
+        if (d && typeof d === "object" && !Array.isArray(d) && d.code) msg = localizeError(d);
+        else if (typeof d === "string") msg = d;
+        else msg = t("errFetch");
+        throw new Error(msg);
+      }, function(){ throw new Error("HTTP " + res.status); });
+    }
     var name = "packages.zip";
     var cd = res.headers.get("Content-Disposition") || "";
     var m = cd.match(/filename="?([^"]+)"?/);
