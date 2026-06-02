@@ -5,6 +5,20 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.0.0] — 2026-06-01
+First stable release. **deb-downloader** fetches a Debian/Ubuntu package (or
+several) plus all their dependencies as a ready-to-use offline `.zip`. Highlights:
+
+- Bilingual (EN/FR) landing page with an automatic version indicator.
+- Web UI + HTTP API with **asynchronous jobs** and a **live progress bar**.
+- Distributions: Debian 11/12/13 and Ubuntu 20.04/22.04/24.04/26.04, plus **EOL
+  Debian 9/10** (archive mirrors); **amd64 and arm64**.
+- **HashiCorp** packages (packer, terraform, vault, …) on amd64.
+- Per-job **size quota** + server **disk-space** display.
+- Clean, **translated** error messages for every failure case.
+- One-file **self-hosting guide** (`DEPLOY.md`): nginx + Docker, systemd,
+  reverse proxy at `/app`.
+
 ## [v0.11.2] — 2026-06-01
 ### Changed
 - HashiCorp packages are now restricted to **reliable combinations only**:
@@ -314,6 +328,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.0.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.0.0
 [v0.11.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.2
 [v0.11.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.1
 [v0.11.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.0
