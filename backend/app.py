@@ -202,6 +202,21 @@ def _run_job(job_id, req):
         if job_id in _JOBS:
             _JOBS[job_id]["status"] = "running"
     work = JOBS_DIR / job_id / "work"
+
+    def _keep_log():
+        """Preserve the container output on failure for debugging.
+
+        The work tree (incl. its .log) is removed after a job, so on error we
+        copy the log up to <job>/error.log, which survives until the job is
+        purged (JOB_TTL). Lets us see e.g. a frozen Docker image pull.
+        """
+        try:
+            src = work / ".log"
+            if src.exists():
+                shutil.copy2(src, JOBS_DIR / job_id / "error.log")
+        except OSError:
+            pass
+
     try:
         work.mkdir(parents=True, exist_ok=True)
         zip_path = fetch.run(req.distro, req.release, req.arch, req.packages,
@@ -219,12 +234,14 @@ def _run_job(job_id, req):
                                      filename=zip_path.name, size=size,
                                      package_count=count)
     except fetch.FetchError as e:
+        _keep_log()
         shutil.rmtree(work, ignore_errors=True)
         with _LOCK:
             if job_id in _JOBS:
                 _JOBS[job_id].update(status="error",
                                      error={"code": e.code, "message": str(e), **e.data})
     except Exception as e:
+        _keep_log()
         shutil.rmtree(work, ignore_errors=True)
         code = "internal"
         if isinstance(e, OSError) and getattr(e, "errno", None) == errno.ENOSPC:

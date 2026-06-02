@@ -237,7 +237,14 @@ def run(distro, release, arch, packages, out_dir=None,
         output = ""
 
     if timed_out:
-        raise FetchError("timeout", "The fetch timed out.")
+        # Surface what the container was doing when it was killed: write the full
+        # output to the server log (journalctl) and pass the last lines back so
+        # the UI can show them (e.g. a Docker image pull frozen on "Pulling fs
+        # layer" points at a host network/MTU problem, not the tool).
+        sys.stderr.write(output)
+        tail = [ln for ln in output.strip().splitlines() if ln.strip()][-6:]
+        raise FetchError("timeout", "The fetch timed out.",
+                         log_tail="\n".join(tail))
 
     if proc.returncode != 0:
         sys.stderr.write(output)

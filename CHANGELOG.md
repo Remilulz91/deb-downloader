@@ -5,6 +5,16 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.4.1] — 2026-06-02
+### Fixed
+- **Failures are no longer silent.** When a job fails (including a timeout), the
+  container output is now kept as `error.log` in the job folder instead of being
+  deleted with the work tree, and the full output is written to the server log
+  (`journalctl`). On timeout the engine also returns the **last log lines**, and
+  the UI shows them under the error — so a stalled Docker image pull (e.g. frozen
+  on "Pulling fs layer" after a network change) is visible directly instead of a
+  bare "timed out". Added a localized `timeout` message (EN/FR).
+
 ## [v1.4.0] — 2026-06-01
 ### Removed
 - **arm64 support dropped — amd64 only.** Removed the architecture selector from
@@ -375,6 +385,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.1
 [v1.4.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.0
 [v1.3.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.2
 [v1.3.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.1
