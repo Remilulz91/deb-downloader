@@ -123,6 +123,7 @@ var I18N = {
     errInvalid: "Invalid package name(s): {names}. Use lowercase letters, digits and + . _ -.",
     errTooMany: "Too many packages (max {max}).",
     errEmulation: 'Fetching {arch} needs Docker emulation on this host. On an amd64 machine, install it once: <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
+    errNoSpace: "Not enough disk space on the server to build this archive. Try a smaller package set.",
     errFetch: "The fetch failed. Check the package name and try again."
   },
   fr: {
@@ -148,6 +149,7 @@ var I18N = {
     errInvalid: "Nom(s) de paquet invalide(s) : {names}. Utilisez minuscules, chiffres et + . _ -.",
     errTooMany: "Trop de paquets (max {max}).",
     errEmulation: 'Récupérer en {arch} nécessite l\'émulation Docker sur cet hôte. Sur une machine amd64, installez-la une fois : <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
+    errNoSpace: "Espace disque insuffisant sur le serveur pour générer cette archive. Essayez un ensemble de paquets plus petit.",
     errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez."
   }
 };
@@ -163,6 +165,7 @@ function localizeError(d){
     case "invalid_names":      return t("errInvalid").replace("{names}", (d.names||[]).join(", "));
     case "too_many":           return t("errTooMany").replace("{max}", d.max);
     case "emulation_missing":  return t("errEmulation").replace(/\{arch\}/g, d.arch || "arm64");
+    case "no_space":           return t("errNoSpace");
     default:                   return d.message || t("errFetch");
   }
 }

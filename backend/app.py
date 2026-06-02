@@ -26,8 +26,10 @@ Run (on a host with Docker + dpkg-dev). Debian's pip is externally managed
 Then open http://localhost:8000  (interactive API docs at /docs).
 """
 from __future__ import annotations
+import os
 import time
 import uuid
+import errno
 import shutil
 import threading
 import tempfile
@@ -44,7 +46,7 @@ import fetch
 
 app = FastAPI(
     title="deb-downloader API",
-    version="0.6.0",
+    version="0.8.1",
     description="Fetch a Debian/Ubuntu package and all its dependencies as a .zip.",
 )
 
@@ -54,7 +56,11 @@ FAVICON_PATH = Path(__file__).parent.parent / "favicon.svg"  # repo root
 # --- Job system (in-process) ---------------------------------------------
 MAX_WORKERS = 2          # max concurrent fetches (each spawns a Docker container)
 JOB_TTL = 3600           # seconds a finished job (and its .zip) is kept
-JOBS_DIR = Path(tempfile.gettempdir()) / "deb-downloader-jobs"
+# Working/results directory. Override with DDL_JOBS_DIR to point it at a
+# partition with enough space (big package sets like gnome-core need a few GB,
+# and /tmp may be a small tmpfs). Defaults to the system temp dir.
+JOBS_DIR = Path(os.environ.get("DDL_JOBS_DIR") or
+                (Path(tempfile.gettempdir()) / "deb-downloader-jobs"))
 JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
 _EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
@@ -202,10 +208,13 @@ def _run_job(job_id, req):
                                      error={"code": e.code, "message": str(e), **e.data})
     except Exception as e:
         shutil.rmtree(work, ignore_errors=True)
+        code = "internal"
+        if isinstance(e, OSError) and getattr(e, "errno", None) == errno.ENOSPC:
+            code = "no_space"
         with _LOCK:
             if job_id in _JOBS:
                 _JOBS[job_id].update(status="error",
-                                     error={"code": "internal", "message": str(e)})
+                                     error={"code": code, "message": str(e)})
 
 
 def _purge_expired():

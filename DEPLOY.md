@@ -264,6 +264,21 @@ Useful commands: `sudo systemctl restart deb-downloader-api`,
 `sudo systemctl stop deb-downloader-api`, and `journalctl -u deb-downloader-api -f`
 to follow the logs. Once enabled, you never start it by hand again.
 
+> **Disk space.** Fetches are built under a working directory (default: the
+> system temp dir). Large package sets (e.g. `gnome-core`) need a few GB — and
+> on some systems `/tmp` is a small RAM-backed `tmpfs`. If you hit "not enough
+> disk space", point the working dir at a roomier partition via the
+> `DDL_JOBS_DIR` environment variable. With systemd, add a drop-in:
+> ```bash
+> sudo systemctl edit deb-downloader-api
+> # in the editor, add:
+> #   [Service]
+> #   Environment=DDL_JOBS_DIR=/var/lib/deb-downloader-jobs
+> sudo mkdir -p /var/lib/deb-downloader-jobs
+> sudo chown "$USER":"$USER" /var/lib/deb-downloader-jobs
+> sudo systemctl restart deb-downloader-api
+> ```
+
 ---
 
 ## 12. Access the tool at http://&lt;ip&gt;/app (no port)

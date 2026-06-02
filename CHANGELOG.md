@@ -5,6 +5,16 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.8.1] — 2026-06-01
+### Added
+- The working/results directory is now configurable via the **`DDL_JOBS_DIR`**
+  environment variable, so it can point at a partition with enough space (large
+  package sets like `gnome-core` need a few GB, and `/tmp` may be a small tmpfs).
+
+### Fixed
+- Running out of disk now shows a clear, translated **"not enough disk space"**
+  message instead of the raw `[Errno 28]`.
+
 ## [v0.8.0] — 2026-06-01
 ### Added
 - **Real progress bar.** The engine downloads the `.deb` straight into the
@@ -221,6 +231,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.8.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.1
 [v0.8.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.0
 [v0.7.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.1
 [v0.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.0
