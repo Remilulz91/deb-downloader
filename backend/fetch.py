@@ -287,7 +287,9 @@ def run(distro, release, arch, packages, out_dir=None,
     if progress_cb:
         progress_cb(count_debs(), total)
 
-    safe_pkg = "-".join(packages)
+    # Build a clean archive name: join packages and replace any character that's
+    # awkward in a filename (e.g. '=' from name=version, ':' from epochs) with '-'.
+    safe_pkg = re.sub(r"[^A-Za-z0-9.+]+", "-", "-".join(packages)).strip("-")
     zip_name = f"{safe_pkg}_{distro}-{release}_{arch}.zip"
     zip_path = out_dir.parent / zip_name
     build_repo.build(out_dir, distro, release, packages, zip_path)

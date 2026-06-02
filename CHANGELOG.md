@@ -5,6 +5,11 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.3.1] — 2026-06-01
+### Fixed
+- The `.zip` filename no longer contains `=` (or `:`) coming from version-pinned
+  package names — e.g. `gitlab-ce-18.10.0-ce.0_debian-13_amd64.zip`.
+
 ## [v1.3.0] — 2026-06-01
 ### Added
 - **Version pinning**: request a specific version with `name=version` (apt
@@ -355,6 +360,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.3.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.1
 [v1.3.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.0
 [v1.2.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.1.0
