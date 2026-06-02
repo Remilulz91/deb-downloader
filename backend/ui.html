@@ -232,7 +232,10 @@ function showStatus(kind, fn){ lastStatus = {kind:kind, fn:fn}; statusEl.classNa
 function fillReleases(){
   var d = distroSel.value; releaseSel.innerHTML = "";
   (MAP[d] || []).forEach(function(r){
-    var o = document.createElement("option"); o.value = r; o.textContent = r; releaseSel.appendChild(o);
+    var o = document.createElement("option");
+    o.value = r.release;
+    o.textContent = r.release + (r.eol ? " (EOL)" : "");
+    releaseSel.appendChild(o);
   });
 }
 
@@ -241,7 +244,7 @@ fetch("api/distributions")
   .then(function(data){
     (data.distributions || []).forEach(function(item){
       if(!MAP[item.distro]) MAP[item.distro] = [];
-      MAP[item.distro].push(item.release);
+      MAP[item.distro].push({release: item.release, eol: item.eol});
     });
     Object.keys(MAP).forEach(function(d){
       var o = document.createElement("option");

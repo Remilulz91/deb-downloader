@@ -70,8 +70,12 @@ def validate(distro, release, arch, packages):
     return image
 
 
-def container_script(packages, no_recommends=False):
+def container_script(packages, no_recommends=False, fixup="", apt_extra=""):
     """Script run INSIDE the disposable container.
+
+    `fixup` is an optional shell snippet run before `apt-get update` (used to
+    repoint apt at archive mirrors for EOL releases); `apt_extra` adds apt
+    options (e.g. tolerating expired Release files).
 
     Resolves the package set with --print-uris (no download) to compute the
     total count (/out/.total) and total size (/out/.size); enforces the optional
@@ -85,10 +89,10 @@ def container_script(packages, no_recommends=False):
     # the "_apt" user. We harden the container with --cap-drop ALL, which removes
     # the SETUID/SETGID capabilities apt would need to switch users — without
     # this option the download method fails ("setgroups: Operation not permitted").
-    apt = "apt-get -o APT::Sandbox::User=root"
+    apt = "apt-get -o APT::Sandbox::User=root" + apt_extra
     return (
-        "set -e; export DEBIAN_FRONTEND=noninteractive; "
-        f"{apt} update -qq; "
+        "set -e; export DEBIAN_FRONTEND=noninteractive; " + fixup
+        + f"{apt} update -qq; "
         "mkdir -p /out/debs/partial; "
         # resolve only (no download): capture URIs to compute count + total size
         f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null > /out/.uris_raw || true; "
@@ -148,7 +152,9 @@ def run(distro, release, arch, packages, out_dir=None,
     debs_dir.mkdir(parents=True, exist_ok=True)
 
     container = "ddl_" + uuid.uuid4().hex[:12]
-    script = container_script(packages, no_recommends)
+    script = container_script(packages, no_recommends,
+                             fixup=distros.sources_fixup(distro, release),
+                             apt_extra=distros.apt_opts(distro, release))
     cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits,
                          name=container, max_bytes=max_bytes)
 

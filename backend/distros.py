@@ -1,21 +1,30 @@
-"""deb-downloader — supported distributions (MVP).
+"""deb-downloader — supported distributions.
 Copyright (c) 2026 Remilulz91. All rights reserved.
 
-Maps (distribution, version) -> official Docker image, plus architectures.
-Extend this dictionary to add new versions later.
+Maps (distribution, version) -> official Docker image, plus architectures, and
+handles EOL releases (whose apt mirrors moved to archive servers).
 """
 
 # Key: (distro, release) -> base Docker image. Newest first per distro.
-# Only versions whose apt mirrors are still live are listed (EOL / non-LTS
-# releases moved to archive mirrors and would fail).
 SUPPORTED = {
     ("debian", "13"): "debian:13",
     ("debian", "12"): "debian:12",
     ("debian", "11"): "debian:11",
+    ("debian", "10"): "debian:10",      # EOL -> archive.debian.org
+    ("debian", "9"): "debian:9",        # EOL -> archive.debian.org
     ("ubuntu", "26.04"): "ubuntu:26.04",
     ("ubuntu", "24.04"): "ubuntu:24.04",
     ("ubuntu", "22.04"): "ubuntu:22.04",
     ("ubuntu", "20.04"): "ubuntu:20.04",
+    ("ubuntu", "18.04"): "ubuntu:18.04",  # EOL -> old-releases.ubuntu.com
+    ("ubuntu", "16.04"): "ubuntu:16.04",  # EOL -> old-releases.ubuntu.com
+}
+
+# End-of-life releases: apt sources must be repointed at archive mirrors and
+# expired Release files tolerated. Best-effort (archives can be slow/flaky).
+_EOL = {
+    ("debian", "10"), ("debian", "9"),
+    ("ubuntu", "18.04"), ("ubuntu", "16.04"),
 }
 
 # Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu
@@ -41,7 +50,41 @@ def image_for(distro: str, release: str) -> str:
     return SUPPORTED[key]
 
 
+def is_eol(distro: str, release: str) -> bool:
+    return (distro.lower().strip(), release.strip()) in _EOL
+
+
+def apt_opts(distro: str, release: str) -> str:
+    """Extra apt-get options for the release ('' for live ones)."""
+    # EOL archive Release files are expired -> tolerate that.
+    return " -o Acquire::Check-Valid-Until=false" if is_eol(distro, release) else ""
+
+
+def sources_fixup(distro: str, release: str) -> str:
+    """Shell snippet (run before `apt-get update`) to repoint apt at archive
+    mirrors for EOL releases. Returns '' for live releases."""
+    if not is_eol(distro, release):
+        return ""
+    d = distro.lower().strip()
+    if d == "debian":
+        # buster/stretch moved to archive.debian.org; drop -updates (not archived).
+        return (
+            "sed -i -E 's|https?://deb\\.debian\\.org|http://archive.debian.org|g; "
+            "s|https?://security\\.debian\\.org|http://archive.debian.org|g' "
+            "/etc/apt/sources.list 2>/dev/null || true; "
+            "sed -i '/-updates/d' /etc/apt/sources.list 2>/dev/null || true; "
+        )
+    if d == "ubuntu":
+        # bionic/xenial moved to old-releases.ubuntu.com.
+        return (
+            "sed -i -E 's|https?://[a-z.]*archive\\.ubuntu\\.com|http://old-releases.ubuntu.com|g; "
+            "s|https?://security\\.ubuntu\\.com|http://old-releases.ubuntu.com|g' "
+            "/etc/apt/sources.list 2>/dev/null || true; "
+        )
+    return ""
+
+
 def list_supported():
     """Serializable list for the /distributions API."""
-    return [{"distro": d, "release": r, "image": img}
+    return [{"distro": d, "release": r, "image": img, "eol": (d, r) in _EOL}
             for (d, r), img in SUPPORTED.items()]

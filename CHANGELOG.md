@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.10.0] — 2026-06-01
+### Added
+- **EOL distributions via archive mirrors** (best-effort): **Debian 10 / 9** and
+  **Ubuntu 18.04 / 16.04**. The engine repoints apt at `archive.debian.org` /
+  `old-releases.ubuntu.com` and tolerates expired Release files
+  (`Acquire::Check-Valid-Until=false`). These versions are flagged **"(EOL)"** in
+  the version selector. Archive mirrors can be slower or occasionally flaky.
+
 ## [v0.9.0] — 2026-06-01
 ### Added
 - **Server disk info** in the tool: free space, plus the per-job limit when set.
@@ -246,6 +254,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.10.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.0
 [v0.9.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.9.0
 [v0.8.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.2
 [v0.8.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.1
