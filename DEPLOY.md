@@ -268,16 +268,20 @@ to follow the logs. Once enabled, you never start it by hand again.
 > system temp dir). Large package sets (e.g. `gnome-core`) need a few GB — and
 > on some systems `/tmp` is a small RAM-backed `tmpfs`. If you hit "not enough
 > disk space", point the working dir at a roomier partition via the
-> `DDL_JOBS_DIR` environment variable. With systemd, add a drop-in:
+> `DDL_JOBS_DIR` environment variable. With systemd, add a drop-in (this writes
+> the file directly, no interactive editor):
 > ```bash
-> sudo systemctl edit deb-downloader-api
-> # in the editor, add:
-> #   [Service]
-> #   Environment=DDL_JOBS_DIR=/var/lib/deb-downloader-jobs
+> sudo mkdir -p /etc/systemd/system/deb-downloader-api.service.d
+> sudo tee /etc/systemd/system/deb-downloader-api.service.d/override.conf >/dev/null <<'EOF'
+> [Service]
+> Environment=DDL_JOBS_DIR=/var/lib/deb-downloader-jobs
+> EOF
 > sudo mkdir -p /var/lib/deb-downloader-jobs
 > sudo chown "$USER":"$USER" /var/lib/deb-downloader-jobs
+> sudo systemctl daemon-reload
 > sudo systemctl restart deb-downloader-api
 > ```
+> Check it is applied with: `systemctl show deb-downloader-api -p Environment`
 
 ---
 
