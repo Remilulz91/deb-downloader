@@ -16,16 +16,16 @@ SUPPORTED = {
     ("ubuntu", "24.04"): "ubuntu:24.04",
     ("ubuntu", "22.04"): "ubuntu:22.04",
     ("ubuntu", "20.04"): "ubuntu:20.04",
-    ("ubuntu", "16.04"): "ubuntu:16.04",  # EOL -> old-releases.ubuntu.com
-    # 18.04 is still under ESM (until 2028): not on public mirrors, needs an
-    # Ubuntu Pro token. Re-add it once it fully EOLs and moves to old-releases.
+    # Ubuntu EOL releases are not offered for now: their packages are not
+    # reliably fetchable anonymously (18.04 is still under ESM until 2028; 16.04
+    # left ESM in 2026 but isn't cleanly published on old-releases yet). The
+    # Ubuntu source-rewrite logic below is kept ready for when that stabilizes.
 }
 
 # End-of-life releases: apt sources must be repointed at archive mirrors and
 # expired Release files tolerated. Best-effort (archives can be slow/flaky).
 _EOL = {
     ("debian", "10"), ("debian", "9"),
-    ("ubuntu", "16.04"),
 }
 
 # Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu

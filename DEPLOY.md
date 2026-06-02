@@ -213,12 +213,11 @@ sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 > ```
 > Without it, `arm64` fetches fail. (Native arm64 hosts need nothing extra.)
 
-> **EOL versions (best-effort).** Debian 10/9 and Ubuntu 16.04 are marked
-> "(EOL)" in the selector. The engine automatically repoints apt at the archive
-> mirrors (`archive.debian.org`, `old-releases.ubuntu.com`) and keeps only the
-> base suite. Nothing to install, but these mirrors can be slower or
-> occasionally unavailable. (Ubuntu 18.04 is still under ESM and not on public
-> mirrors, so it is not offered.)
+> **EOL versions (best-effort).** Debian 10/9 are marked "(EOL)" in the
+> selector; the engine automatically repoints apt at `archive.debian.org`.
+> Nothing to install, but the archive mirror can be slower. (Ubuntu EOL versions
+> are not offered for now: 18.04 is still under ESM, and 16.04 isn't cleanly
+> available on public mirrors yet.)
 
 ---
 

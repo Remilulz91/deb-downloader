@@ -5,6 +5,15 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.10.2] — 2026-06-01
+### Removed
+- Ubuntu **16.04** from the list: it just left ESM (2026) and is not yet cleanly
+  published on `old-releases.ubuntu.com` (even the base suite 404s), so it can't
+  be fetched anonymously right now. With 18.04 still under ESM, no Ubuntu EOL
+  version is offered for the moment. **Debian EOL (10, 9) is unaffected and works
+  fine.** The Ubuntu source-rewrite logic is kept, ready for when these mirrors
+  stabilize.
+
 ## [v0.10.1] — 2026-06-01
 ### Fixed
 - Ubuntu **16.04 (EOL)**: the `-updates`/`-backports`/`-security` pockets are now
@@ -265,6 +274,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.10.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.2
 [v0.10.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.1
 [v0.10.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.0
 [v0.9.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.9.0
