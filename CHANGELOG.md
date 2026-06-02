@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.10.4] — 2026-06-01
+### Removed
+- Debian **8 (jessie)** from the EOL set: its old apt (1.0.x) treats the expired
+  archive signature as unauthenticated and demands `--force-yes` (i.e. fetching
+  unsigned packages), which we don't do. The reliable EOL floor stays at Debian
+  **9 (stretch)**; 10 and 9 keep working cleanly. (The broader Debian
+  mirror-host rewrite from v0.10.3 is kept.)
+
 ## [v0.10.3] — 2026-06-01
 ### Added
 - **Debian 8 (jessie)** added to the EOL set (`archive.debian.org`) — the most
@@ -280,6 +288,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.10.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.4
 [v0.10.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.3
 [v0.10.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.2
 [v0.10.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.1

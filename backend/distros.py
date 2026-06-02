@@ -12,7 +12,9 @@ SUPPORTED = {
     ("debian", "11"): "debian:11",
     ("debian", "10"): "debian:10",      # EOL -> archive.debian.org
     ("debian", "9"): "debian:9",        # EOL -> archive.debian.org
-    ("debian", "8"): "debian:8",        # EOL -> archive.debian.org
+    # Debian 8 (jessie) and older: their apt is too old and treats the expired
+    # archive signature as unauthenticated (needs --force-yes), so they're not
+    # offered (we don't fetch unsigned packages).
     ("ubuntu", "26.04"): "ubuntu:26.04",
     ("ubuntu", "24.04"): "ubuntu:24.04",
     ("ubuntu", "22.04"): "ubuntu:22.04",
@@ -26,7 +28,7 @@ SUPPORTED = {
 # End-of-life releases: apt sources must be repointed at archive mirrors and
 # expired Release files tolerated. Best-effort (archives can be slow/flaky).
 _EOL = {
-    ("debian", "10"), ("debian", "9"), ("debian", "8"),
+    ("debian", "10"), ("debian", "9"),
 }
 
 # Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu
