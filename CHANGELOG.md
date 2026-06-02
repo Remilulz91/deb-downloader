@@ -5,6 +5,13 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.2.0] — 2026-06-01
+### Added
+- **Wazuh packages** (`wazuh-agent`, `wazuh-manager`, `wazuh-indexer`,
+  `wazuh-dashboard`) via the third-party repo registry
+  (`packages.wazuh.com/4.x`, single `stable main` suite). amd64; provides the
+  latest 4.x `.deb` — handy for updating an old agent/manager.
+
 ## [v1.1.0] — 2026-06-01
 ### Added
 - **Docker packages** (`docker-ce`, `docker-ce-cli`, `containerd.io`,
@@ -339,6 +346,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.2.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.0.0
 [v0.11.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.2

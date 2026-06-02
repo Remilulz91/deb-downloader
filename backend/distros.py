@@ -78,6 +78,15 @@ THIRD_PARTY_REPOS = {
         "arches": {"amd64"},
         "blocked": set(),
     },
+    "wazuh": {
+        # Single 'stable main' suite (not codename-based), valid for Debian/Ubuntu.
+        "packages": {"wazuh-agent", "wazuh-manager", "wazuh-indexer",
+                     "wazuh-dashboard"},
+        "key_url": "https://packages.wazuh.com/key/GPG-KEY-WAZUH",
+        "line": "deb [arch={arch}] https://packages.wazuh.com/4.x/apt/ stable main",
+        "arches": {"amd64"},
+        "blocked": set(),
+    },
 }
 
 
