@@ -74,12 +74,18 @@ an APT index (Packages.gz). There are two ways to use it on the target machine.
 
 
 def make_zip(out_dir, zip_path) -> Path:
-    """Compress the contents of out_dir into zip_path (.zip)."""
+    """Compress the contents of out_dir into zip_path (.zip).
+
+    Internal working files (dotfiles such as .log, .total, .urls, .count) are
+    excluded so the archive only contains debs/, Packages(.gz) and INSTALL.txt.
+    """
     out_dir = Path(out_dir)
     zip_path = Path(zip_path)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for root, _dirs, files in os.walk(out_dir):
             for name in files:
+                if name.startswith("."):
+                    continue
                 full = Path(root) / name
                 # archive name relative to out_dir
                 zf.write(full, full.relative_to(out_dir))

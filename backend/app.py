@@ -146,6 +146,8 @@ def job_status(job_id: str):
                        download_url="api/jobs/%s/download" % job_id)
         elif j["status"] == "error":
             out["error"] = j.get("error")
+        elif j["status"] == "running":
+            out["progress"] = j.get("progress")   # {"done": int, "total": int|None} or None
     return out
 
 
@@ -167,6 +169,11 @@ def job_download(job_id: str):
 # --- Worker + housekeeping ------------------------------------------------
 def _run_job(job_id, req):
     """Executed in a worker thread: run the fetch and record the result."""
+    def progress(done, total):
+        with _LOCK:
+            if job_id in _JOBS:
+                _JOBS[job_id]["progress"] = {"done": done, "total": total}
+
     with _LOCK:
         if job_id in _JOBS:
             _JOBS[job_id]["status"] = "running"
@@ -174,7 +181,8 @@ def _run_job(job_id, req):
     try:
         work.mkdir(parents=True, exist_ok=True)
         zip_path = fetch.run(req.distro, req.release, req.arch, req.packages,
-                             out_dir=work, no_recommends=req.no_recommends)
+                             out_dir=work, no_recommends=req.no_recommends,
+                             progress_cb=progress)
         try:
             count = sum(1 for _ in (work / "debs").glob("*.deb"))
         except OSError:

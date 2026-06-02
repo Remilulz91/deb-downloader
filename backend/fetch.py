@@ -16,6 +16,8 @@ Requires Docker (host) + dpkg-dev (dpkg-scanpackages) on the host.
 from __future__ import annotations
 import re
 import sys
+import time
+import uuid
 import shlex
 import shutil
 import argparse
@@ -69,7 +71,12 @@ def validate(distro, release, arch, packages):
 
 
 def container_script(packages, no_recommends=False):
-    """Script run INSIDE the disposable container: downloads .deb into /out/debs."""
+    """Script run INSIDE the disposable container.
+
+    Downloads the .deb files straight into the bind-mounted /out/debs so the host
+    can watch progress, and writes the total number of packages to /out/.total
+    first (computed with --print-uris, which resolves without downloading).
+    """
     rec = "--no-install-recommends " if no_recommends else ""
     # packages are already validated -> safe to interpolate; quote them anyway.
     pkgs = " ".join(shlex.quote(p) for p in packages)
@@ -81,20 +88,25 @@ def container_script(packages, no_recommends=False):
     return (
         "set -e; export DEBIAN_FRONTEND=noninteractive; "
         f"{apt} update -qq; "
-        "mkdir -p /out/debs; "
-        "rm -f /var/cache/apt/archives/*.deb || true; "
-        f"{apt} install -y {rec}--download-only {pkgs}; "
-        "cp /var/cache/apt/archives/*.deb /out/debs/ 2>/dev/null || true; "
-        # marker: number of fetched .deb files
-        "ls -1 /out/debs/*.deb | wc -l > /out/.count"
+        "mkdir -p /out/debs/partial; "
+        # total number of .deb to fetch (resolve only, no download)
+        f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null "
+        "| grep -oE \"https?://[^ ']+\\.deb\" | sort -u > /out/.urls || true; "
+        "wc -l < /out/.urls > /out/.total; "
+        # real download, straight into the mounted dir (observable from the host)
+        f"{apt} -o Dir::Cache::archives=/out/debs install -y {rec}--download-only {pkgs}; "
+        "rm -rf /out/debs/partial /out/debs/lock 2>/dev/null || true; "
+        "ls -1 /out/debs/*.deb 2>/dev/null | wc -l > /out/.count"
     )
 
 
-def docker_command(image, arch, out_host, script, limits):
+def docker_command(image, arch, out_host, script, limits, name=None):
     """Build the `docker run` command (argument list)."""
     platform = distros.PLATFORM.get(arch, "linux/amd64")
-    return [
-        "docker", "run", "--rm",
+    cmd = ["docker", "run", "--rm"]
+    if name:
+        cmd += ["--name", name]
+    cmd += [
         "--platform", platform,
         "--memory", limits["memory"],
         "--cpus", limits["cpus"],
@@ -109,18 +121,27 @@ def docker_command(image, arch, out_host, script, limits):
         image,
         "bash", "-lc", script,
     ]
+    return cmd
 
 
 def run(distro, release, arch, packages, out_dir=None,
-        no_recommends=False, limits=None, dry_run=False):
+        no_recommends=False, limits=None, dry_run=False, progress_cb=None):
+    """Fetch packages and build the .zip.
+
+    progress_cb(done, total) is called ~once per second while downloading, where
+    `done` is the number of .deb already written and `total` the expected count
+    (or None until it is known).
+    """
     limits = {**DEFAULTS, **(limits or {})}
     image = validate(distro, release, arch, packages)
 
     out_dir = Path(out_dir) if out_dir else Path(tempfile.mkdtemp(prefix="ddl_"))
-    (out_dir / "debs").mkdir(parents=True, exist_ok=True)
+    debs_dir = out_dir / "debs"
+    debs_dir.mkdir(parents=True, exist_ok=True)
 
+    container = "ddl_" + uuid.uuid4().hex[:12]
     script = container_script(packages, no_recommends)
-    cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits)
+    cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits, name=container)
 
     if dry_run:
         print("# [dry-run] Docker command that would be executed:\n")
@@ -133,16 +154,48 @@ def run(distro, release, arch, packages, out_dir=None,
         raise FetchError("docker_missing", "Docker not found on the host.")
 
     print(f"[*] Fetching {packages} for {distro} {release} ({arch})...")
+    log_path = out_dir / ".log"
+    total_path = out_dir / ".total"
+    deadline = time.time() + limits["timeout"]
+    timed_out = False
+
+    def count_debs():
+        try:
+            return len(list(debs_dir.glob("*.deb")))
+        except OSError:
+            return 0
+
+    with open(log_path, "w") as logf:
+        proc = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, text=True)
+        total = None
+        while proc.poll() is None:
+            if time.time() > deadline:
+                timed_out = True
+                subprocess.run(["docker", "kill", container], capture_output=True)
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                break
+            if total is None and total_path.exists():
+                try:
+                    total = int(total_path.read_text().strip() or "0") or None
+                except ValueError:
+                    total = None
+            if progress_cb:
+                progress_cb(count_debs(), total)
+            time.sleep(1)
+
     try:
-        subprocess.run(cmd, check=True, timeout=limits["timeout"],
-                       capture_output=True, text=True)
-    except subprocess.TimeoutExpired:
+        output = log_path.read_text(errors="replace")
+    except OSError:
+        output = ""
+
+    if timed_out:
         raise FetchError("timeout", "The fetch timed out.")
-    except subprocess.CalledProcessError as e:
-        output = (e.stdout or "") + "\n" + (e.stderr or "")
-        # Keep the full container output in the journal for debugging.
+
+    if proc.returncode != 0:
         sys.stderr.write(output)
-        # Detect "package not found" cases from apt's output.
         notfound = sorted(set(
             re.findall(r"Unable to locate package (\S+)", output)
             + re.findall(r"Package '([^']+)' has no installation candidate", output)
@@ -152,7 +205,6 @@ def run(distro, release, arch, packages, out_dir=None,
             raise FetchError("package_not_found",
                              "Package(s) not found: " + ", ".join(notfound),
                              packages=notfound)
-        # Missing CPU emulation for a foreign architecture (e.g. arm64 on amd64).
         if "exec format error" in output or "no matching manifest" in output:
             raise FetchError(
                 "emulation_missing",
@@ -160,9 +212,11 @@ def run(distro, release, arch, packages, out_dir=None,
                 "(install: docker run --privileged --rm tonistiigi/binfmt --install %s)."
                 % (arch, arch),
                 arch=arch)
-        # Otherwise surface a short, clean tail of the error (no command dump).
         tail = [ln for ln in output.strip().splitlines() if ln.strip()][-4:]
         raise FetchError("fetch_failed", "\n".join(tail) or "The fetch failed.")
+
+    if progress_cb:
+        progress_cb(count_debs(), total)
 
     safe_pkg = "-".join(packages)
     zip_name = f"{safe_pkg}_{distro}-{release}_{arch}.zip"

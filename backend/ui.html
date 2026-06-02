@@ -49,6 +49,10 @@
   .spin{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;
     border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px;margin-right:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .pbar{height:10px;background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:10px}
+  .pbar-fill{height:100%;width:0;border-radius:6px;background:linear-gradient(135deg,var(--accent),var(--accent-2));transition:width .3s ease}
+  .pbar.indet .pbar-fill{width:35%;animation:indet 1.2s ease-in-out infinite}
+  @keyframes indet{0%{margin-left:-35%}100%{margin-left:100%}}
   footer{color:var(--text-dim);font-size:.8rem;margin-top:24px;text-align:center}
   footer a{color:var(--text-dim);text-decoration:none}
   footer a:hover{color:var(--text)}
@@ -109,6 +113,8 @@ var I18N = {
     apiErr: "Could not reach the API.",
     queued: '<span class="spin"></span>Queued… waiting for a free worker.',
     working: '<span class="spin"></span>Fetching {pkgs} for {distro} {release}… This can take a while.',
+    progResolving: '<span class="spin"></span>Resolving dependencies…',
+    progDownloading: "Downloading… {done}/{total} packages",
     done: "✅ Done — your download (<b>{name}</b>) has started.",
     doneMeta: "{count} package(s) · {size}",
     redownload: "Download again",
@@ -132,6 +138,8 @@ var I18N = {
     apiErr: "Impossible de joindre l'API.",
     queued: '<span class="spin"></span>En file d\'attente… en attente d\'un emplacement libre.',
     working: '<span class="spin"></span>Récupération de {pkgs} pour {distro} {release}… Cela peut prendre un moment.',
+    progResolving: '<span class="spin"></span>Résolution des dépendances…',
+    progDownloading: "Téléchargement… {done}/{total} paquets",
     done: "✅ Terminé — votre téléchargement (<b>{name}</b>) a démarré.",
     doneMeta: "{count} paquet(s) · {size}",
     redownload: "Télécharger à nouveau",
@@ -246,10 +254,16 @@ function pollJob(jobId, pkgsStr, distroV, relV){
         showStatus("work", function(){ return t("queued"); });
         setTimeout(function(){ pollJob(jobId, pkgsStr, distroV, relV); }, 2000);
       } else if(j.status === "running"){
+        var prog = j.progress;
         showStatus("work", function(){
-          return t("working").replace("{pkgs}", pkgsStr).replace("{distro}", distroV).replace("{release}", relV);
+          if (prog && prog.total){
+            var pct = Math.min(100, Math.round(prog.done * 100 / prog.total));
+            return t("progDownloading").replace("{done}", prog.done).replace("{total}", prog.total)
+                 + '<div class="pbar"><div class="pbar-fill" style="width:' + pct + '%"></div></div>';
+          }
+          return t("progResolving") + '<div class="pbar indet"><div class="pbar-fill"></div></div>';
         });
-        setTimeout(function(){ pollJob(jobId, pkgsStr, distroV, relV); }, 2000);
+        setTimeout(function(){ pollJob(jobId, pkgsStr, distroV, relV); }, 1500);
       } else if(j.status === "done"){
         var name = j.filename || "packages.zip";
         var dlUrl = j.download_url || ("api/jobs/" + jobId + "/download");

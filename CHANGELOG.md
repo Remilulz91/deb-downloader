@@ -5,6 +5,18 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.8.0] — 2026-06-01
+### Added
+- **Real progress bar.** The engine downloads the `.deb` straight into the
+  output folder and learns the total upfront (`apt --print-uris`), so the tool
+  shows "Downloading… X/Y packages" with a filling bar (and an indeterminate bar
+  while dependencies are being resolved).
+
+### Changed
+- Per-job timeout now reliably stops the container (`docker kill`).
+- Internal working files (`.log`, `.total`, `.urls`, `.count`) are excluded from
+  the `.zip` (it contains only `debs/`, `Packages(.gz)` and `INSTALL.txt`).
+
 ## [v0.7.1] — 2026-06-01
 ### Fixed
 - Selecting `arm64` on an amd64 host without emulation now shows a clear,
@@ -209,6 +221,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.8.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.0
 [v0.7.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.1
 [v0.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.0
 [v0.6.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.1
