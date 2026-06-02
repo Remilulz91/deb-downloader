@@ -54,34 +54,62 @@ def image_for(distro: str, release: str) -> str:
     return SUPPORTED[key]
 
 
-# Packages that live in HashiCorp's apt repo (not in the base Debian/Ubuntu
-# repos). When one is requested, the engine adds the HashiCorp repo + key.
-HASHICORP_PACKAGES = {
-    "packer", "terraform", "vault", "consul", "nomad",
-    "boundary", "waypoint", "vagrant",
+# --- Third-party apt repos (beyond the base Debian/Ubuntu archives) ----------
+# Each entry: the packages it provides; the GPG key URL; the `deb` line template
+# ({arch}/{distro} substituted in Python, $CN = codename resolved in the
+# container); the supported architectures; and explicitly blocked (distro,
+# release) combos. All are amd64-only for now (installing the repo tools hangs
+# under arm64 qemu emulation) and never offered on EOL releases.
+THIRD_PARTY_REPOS = {
+    "hashicorp": {
+        "packages": {"packer", "terraform", "vault", "consul", "nomad",
+                     "boundary", "waypoint", "vagrant"},
+        "key_url": "https://apt.releases.hashicorp.com/gpg",
+        "line": "deb [arch={arch}] https://apt.releases.hashicorp.com $CN main",
+        "arches": {"amd64"},
+        "blocked": {("ubuntu", "20.04")},  # packer pulls dozens of unrelated deps
+    },
+    "docker": {
+        "packages": {"docker-ce", "docker-ce-cli", "containerd.io",
+                     "docker-buildx-plugin", "docker-compose-plugin",
+                     "docker-ce-rootless-extras"},
+        "key_url": "https://download.docker.com/linux/{distro}/gpg",
+        "line": "deb [arch={arch}] https://download.docker.com/linux/{distro} $CN stable",
+        "arches": {"amd64"},
+        "blocked": set(),
+    },
 }
 
 
-def needs_hashicorp(packages) -> bool:
-    return any(p in HASHICORP_PACKAGES for p in packages)
+def repo_for_packages(packages):
+    """Return the third-party repo id needed for these packages, or None."""
+    for rid, repo in THIRD_PARTY_REPOS.items():
+        if any(p in repo["packages"] for p in packages):
+            return rid
+    return None
 
 
-# HashiCorp fetching is restricted to what's reliable:
-#  - amd64 only (arm64 hangs under qemu emulation, the common deployment);
-#  - not on EOL releases (HashiCorp doesn't publish for those codenames);
-#  - Ubuntu 20.04 excluded (packer pulls dozens of unrelated deps there).
-HASHICORP_ARCHES = {"amd64"}
-HASHICORP_BLOCKED = {("ubuntu", "20.04")}
+def repo_packages_in(repo_id, packages):
+    """The requested packages that belong to the given third-party repo."""
+    return sorted(set(packages) & THIRD_PARTY_REPOS[repo_id]["packages"])
 
 
-def hashicorp_supported(distro: str, release: str, arch: str) -> bool:
-    if arch not in HASHICORP_ARCHES:
+def repo_supported(repo_id, distro, release, arch) -> bool:
+    repo = THIRD_PARTY_REPOS[repo_id]
+    if arch not in repo["arches"]:
         return False
     if is_eol(distro, release):
         return False
-    if (distro.lower().strip(), release.strip()) in HASHICORP_BLOCKED:
+    if (distro.lower().strip(), release.strip()) in repo["blocked"]:
         return False
     return True
+
+
+def repo_setup(repo_id, distro, release, arch):
+    """Return (key_url, deb_line) for the repo, with {arch}/{distro} filled in."""
+    repo = THIRD_PARTY_REPOS[repo_id]
+    d = distro.lower().strip()
+    return repo["key_url"].format(distro=d), repo["line"].format(arch=arch, distro=d)
 
 
 def is_eol(distro: str, release: str) -> bool:

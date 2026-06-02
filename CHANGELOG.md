@@ -5,6 +5,17 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.1.0] — 2026-06-01
+### Added
+- **Docker packages** (`docker-ce`, `docker-ce-cli`, `containerd.io`,
+  `docker-buildx-plugin`, `docker-compose-plugin`): when requested, the engine
+  adds Docker's apt repo (key + source for the codename) and fetches them.
+
+### Changed
+- Third-party repos are now driven by a small **registry** (HashiCorp + Docker),
+  so adding more is a single data entry. Same reliability limits apply (amd64,
+  non-EOL). The "not available" message is now generic and names the repo.
+
 ## [v1.0.0] — 2026-06-01
 First stable release. **deb-downloader** fetches a Debian/Ubuntu package (or
 several) plus all their dependencies as a ready-to-use offline `.zip`. Highlights:
@@ -328,6 +339,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.1.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.0.0
 [v0.11.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.2
 [v0.11.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.1

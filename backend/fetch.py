@@ -67,24 +67,25 @@ def validate(distro, release, arch, packages):
     bad = [p for p in packages if not PKG_RE.match(p)]
     if bad:
         raise FetchError("invalid_names", f"Invalid package name(s): {bad}", names=bad)
-    # HashiCorp fetching is restricted to reliable combos (amd64, non-EOL, not
-    # Ubuntu 20.04) -> reject anything else early, cleanly.
-    hashi = sorted(set(packages) & distros.HASHICORP_PACKAGES)
-    if hashi and not distros.hashicorp_supported(distro, release, arch):
-        raise FetchError("hashicorp_unavailable",
-                         "HashiCorp packages aren't available for this distro/version/arch.",
-                         packages=hashi, distro=distro, release=release, arch=arch)
+    # Third-party repos (HashiCorp, Docker, ...) are restricted to reliable
+    # combos (amd64, non-EOL, etc.) -> reject anything else early, cleanly.
+    rid = distros.repo_for_packages(packages)
+    if rid and not distros.repo_supported(rid, distro, release, arch):
+        raise FetchError("repo_unavailable",
+                         "This package set isn't available for this distro/version/arch.",
+                         packages=distros.repo_packages_in(rid, packages),
+                         repo=rid, distro=distro, release=release, arch=arch)
     return image
 
 
-def container_script(packages, no_recommends=False, fixup="", apt_extra="",
-                     hashicorp=False, arch="amd64"):
+def container_script(packages, no_recommends=False, fixup="", apt_extra="", repo=None):
     """Script run INSIDE the disposable container.
 
     `fixup` is an optional shell snippet run before `apt-get update` (used to
     repoint apt at archive mirrors for EOL releases); `apt_extra` adds apt
-    options (e.g. tolerating expired Release files); `hashicorp` adds HashiCorp's
-    apt repo (for packer/terraform/...).
+    options (e.g. tolerating expired Release files); `repo` is an optional
+    (repo_id, key_url, deb_line) tuple to add a third-party apt repo (HashiCorp,
+    Docker, ...).
 
     Resolves the package set with --print-uris (no download) to compute the
     total count (/out/.total) and total size (/out/.size); enforces the optional
@@ -100,26 +101,25 @@ def container_script(packages, no_recommends=False, fixup="", apt_extra="",
     # this option the download method fails ("setgroups: Operation not permitted").
     apt = "apt-get -o APT::Sandbox::User=root" + apt_extra
 
-    hashi = ""
-    if hashicorp:
-        # Add HashiCorp's apt repo (key + source) for the right codename/arch.
-        hashi = (
-            f"{apt} install -y ca-certificates curl >/dev/null 2>&1; "
-            # Store the armored key directly in trusted.gpg.d (.asc). This avoids
-            # running gpg --dearmor, which can hang under arm64 qemu emulation.
-            "curl -fsSL https://apt.releases.hashicorp.com/gpg "
-            "-o /etc/apt/trusted.gpg.d/hashicorp.asc; "
-            ". /etc/os-release; CN=\"${UBUNTU_CODENAME:-$VERSION_CODENAME}\"; "
-            "echo \"deb [arch=" + arch + "] https://apt.releases.hashicorp.com "
-            "$CN main\" > /etc/apt/sources.list.d/hashicorp.list; "
-            f"{apt} update -qq || true; "
+    extra = ""
+    if repo:
+        repo_id, key_url, deb_line = repo
+        # Add the third-party repo: tools, armored key in trusted.gpg.d (.asc, so
+        # we never run gpg --dearmor, which can hang under arm64 emulation), and
+        # the deb source for the resolved codename ($CN).
+        extra = (
+            apt + " install -y ca-certificates curl >/dev/null 2>&1; "
+            + "curl -fsSL " + key_url + " -o /etc/apt/trusted.gpg.d/" + repo_id + ".asc; "
+            + ". /etc/os-release; CN=\"${UBUNTU_CODENAME:-$VERSION_CODENAME}\"; "
+            + "echo \"" + deb_line + "\" > /etc/apt/sources.list.d/" + repo_id + ".list; "
+            + apt + " update -qq || true; "
         )
 
     return (
         "set -e; export DEBIAN_FRONTEND=noninteractive; "
         + fixup
         + f"{apt} update -qq; mkdir -p /out/debs/partial; "
-        + hashi
+        + extra
         + f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null > /out/.uris_raw || true; "
         + "grep -oE \"https?://[^ ']+\\.deb\" /out/.uris_raw | sort -u > /out/.urls; "
         + "wc -l < /out/.urls > /out/.total; "
@@ -175,10 +175,15 @@ def run(distro, release, arch, packages, out_dir=None,
     debs_dir.mkdir(parents=True, exist_ok=True)
 
     container = "ddl_" + uuid.uuid4().hex[:12]
+    rid = distros.repo_for_packages(packages)
+    repo = None
+    if rid:
+        key_url, deb_line = distros.repo_setup(rid, distro, release, arch)
+        repo = (rid, key_url, deb_line)
     script = container_script(packages, no_recommends,
                              fixup=distros.sources_fixup(distro, release),
                              apt_extra=distros.apt_opts(distro, release),
-                             hashicorp=distros.needs_hashicorp(packages), arch=arch)
+                             repo=repo)
     cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits,
                          name=container, max_bytes=max_bytes)
 
@@ -249,15 +254,16 @@ def run(distro, release, arch, packages, out_dir=None,
             + re.findall(r"Couldn't find any package by regex '([^']+)'", output)
         ))
         if notfound:
-            # If a HashiCorp package is the one missing, it almost certainly means
-            # HashiCorp doesn't publish for this codename -> clearer message.
-            hashi_missing = sorted(set(notfound) & distros.HASHICORP_PACKAGES)
-            if hashi_missing:
-                raise FetchError("hashicorp_unavailable",
-                                 "Not published by HashiCorp for %s %s: %s"
-                                 % (distro, release, ", ".join(hashi_missing)),
-                                 packages=hashi_missing, distro=distro, release=release,
-                                 arch=arch)
+            # If a third-party-repo package is the one missing, it almost
+            # certainly means that repo doesn't publish for this codename.
+            rid = distros.repo_for_packages(notfound)
+            if rid:
+                missing = distros.repo_packages_in(rid, notfound)
+                raise FetchError("repo_unavailable",
+                                 "Not published for %s %s: %s"
+                                 % (distro, release, ", ".join(missing)),
+                                 packages=missing, repo=rid, distro=distro,
+                                 release=release, arch=arch)
             raise FetchError("package_not_found",
                              "Package(s) not found: " + ", ".join(notfound),
                              packages=notfound)
