@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.3.2] — 2026-06-01
+### Fixed
+- Job archives are now purged by a **background thread every 5 minutes** (not
+  only when a new job is submitted), so disk space is reclaimed even when the
+  service is idle. The purge also sweeps the filesystem to remove **orphan job
+  folders** left by a previous run (e.g. after an API restart). Jobs that are
+  still queued/running are never touched.
+
 ## [v1.3.1] — 2026-06-01
 ### Fixed
 - The `.zip` filename no longer contains `=` (or `:`) coming from version-pinned
@@ -360,6 +368,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.3.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.2
 [v1.3.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.1
 [v1.3.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.0
 [v1.2.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.2.0

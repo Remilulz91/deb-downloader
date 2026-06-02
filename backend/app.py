@@ -236,11 +236,41 @@ def _run_job(job_id, req):
 
 
 def _purge_expired():
-    """Drop jobs (and their archives) older than JOB_TTL."""
+    """Drop jobs (and their archives) older than JOB_TTL.
+
+    Sweeps the filesystem too, so it also removes orphan job folders left by a
+    previous run (after a restart, in-memory records are gone). Folders of jobs
+    still queued/running are never touched.
+    """
     now = time.time()
     with _LOCK:
-        expired = [jid for jid, j in _JOBS.items() if now - j.get("created", now) > JOB_TTL]
+        active = {jid for jid, j in _JOBS.items()
+                  if j.get("status") in ("queued", "running")}
+        expired = [jid for jid, j in _JOBS.items() if jid not in active
+                   and now - j.get("created", now) > JOB_TTL]
         for jid in expired:
             _JOBS.pop(jid, None)
-    for jid in expired:
-        shutil.rmtree(JOBS_DIR / jid, ignore_errors=True)
+    try:
+        for d in JOBS_DIR.iterdir():
+            if not d.is_dir() or d.name in active:
+                continue
+            try:
+                if now - d.stat().st_mtime > JOB_TTL:
+                    shutil.rmtree(d, ignore_errors=True)
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+
+def _purge_loop():
+    """Background thread: purge old job archives periodically, even when idle."""
+    while True:
+        time.sleep(300)  # every 5 minutes
+        try:
+            _purge_expired()
+        except Exception:
+            pass
+
+
+threading.Thread(target=_purge_loop, daemon=True).start()
