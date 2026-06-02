@@ -106,7 +106,7 @@ var I18N = {
     sub: "Pick a distribution, type one or more packages, and download a <b>.zip</b> containing the packages plus all their dependencies (offline-ready).",
     distro: "Distribution", release: "Version", arch: "Architecture", packages: "Package(s)",
     placeholder: "e.g. nginx  (space or comma separated)",
-    hint: "Lowercase names only — letters, digits and + . _ -.",
+    hint: "Lowercase names. Pin a version with name=version (e.g. gitlab-ce=17.5.0-ce.0).",
     norec: "Exclude recommended packages",
     go: "⬇️ Fetch & download .zip",
     home: "← Home",
@@ -128,6 +128,7 @@ var I18N = {
     errNoSpace: "Not enough disk space on the server to build this archive. Try a smaller package set.",
     errTooLarge: "The requested set ({size}) exceeds the per-job limit ({max}).",
     errRepo: "{pkgs} ({repo}) is not available for {distro} {release} ({arch}). Use amd64 on a supported version (e.g. Debian 11/12/13, Ubuntu 22.04/24.04).",
+    errVersion: "Version {version} of {package} was not found. Check the exact version string.",
     errFetch: "The fetch failed. Check the package name and try again.",
     srvDisk: "💾 Server disk: {free} free",
     srvMax: " · max per job: {max}"
@@ -136,7 +137,7 @@ var I18N = {
     sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
     distro: "Distribution", release: "Version", arch: "Architecture", packages: "Paquet(s)",
     placeholder: "ex. nginx  (séparés par espace ou virgule)",
-    hint: "Noms en minuscules uniquement — lettres, chiffres et + . _ -.",
+    hint: "Noms en minuscules. Épinglez une version avec nom=version (ex. gitlab-ce=17.5.0-ce.0).",
     norec: "Exclure les paquets recommandés",
     go: "⬇️ Récupérer & télécharger le .zip",
     home: "← Accueil",
@@ -158,6 +159,7 @@ var I18N = {
     errNoSpace: "Espace disque insuffisant sur le serveur pour générer cette archive. Essayez un ensemble de paquets plus petit.",
     errTooLarge: "L'ensemble demandé ({size}) dépasse la limite par job ({max}).",
     errRepo: "{pkgs} ({repo}) n'est pas disponible pour {distro} {release} ({arch}). Utilisez amd64 sur une version prise en charge (ex. Debian 11/12/13, Ubuntu 22.04/24.04).",
+    errVersion: "La version {version} de {package} est introuvable. Vérifiez la chaîne de version exacte.",
     errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez.",
     srvDisk: "💾 Disque serveur : {free} libres",
     srvMax: " · max par job : {max}"
@@ -178,6 +180,7 @@ function localizeError(d){
     case "no_space":           return t("errNoSpace");
     case "too_large":          return t("errTooLarge").replace("{size}", formatSize(d.size)).replace("{max}", formatSize(d.max));
     case "repo_unavailable":   return t("errRepo").replace("{pkgs}", (d.packages||[]).join(", ")).replace("{repo}", d.repo||"").replace("{distro}", d.distro||"").replace("{release}", d.release||"").replace("{arch}", d.arch||"");
+    case "version_not_found":  return t("errVersion").replace("{version}", d.version||"").replace("{package}", d.package||"");
     default:                   return d.message || t("errFetch");
   }
 }

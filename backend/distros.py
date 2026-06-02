@@ -87,20 +87,38 @@ THIRD_PARTY_REPOS = {
         "arches": {"amd64"},
         "blocked": set(),
     },
+    "gitlab": {
+        # packagecloud keeps the full version history -> use 'name=version' to
+        # fetch a specific GitLab step (upgrades require mandatory stop versions).
+        "packages": {"gitlab-ce"},
+        "key_url": "https://packages.gitlab.com/gpg.key",
+        "line": "deb [arch={arch}] https://packages.gitlab.com/gitlab/gitlab-ce/{distro}/ $CN main",
+        "arches": {"amd64"},
+        "blocked": set(),
+    },
 }
 
 
+def _bare(name):
+    """Package name without an optional '=version' suffix."""
+    return name.split("=", 1)[0]
+
+
 def repo_for_packages(packages):
-    """Return the third-party repo id needed for these packages, or None."""
+    """Return the third-party repo id needed for these packages, or None.
+
+    Matches on the bare package name (ignores an optional '=version' suffix)."""
+    names = {_bare(p) for p in packages}
     for rid, repo in THIRD_PARTY_REPOS.items():
-        if any(p in repo["packages"] for p in packages):
+        if names & repo["packages"]:
             return rid
     return None
 
 
 def repo_packages_in(repo_id, packages):
-    """The requested packages that belong to the given third-party repo."""
-    return sorted(set(packages) & THIRD_PARTY_REPOS[repo_id]["packages"])
+    """The requested package names (bare) that belong to the given repo."""
+    names = {_bare(p) for p in packages}
+    return sorted(names & THIRD_PARTY_REPOS[repo_id]["packages"])
 
 
 def repo_supported(repo_id, distro, release, arch) -> bool:

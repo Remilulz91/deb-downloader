@@ -219,10 +219,13 @@ sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 > are not offered for now: 18.04 is still under ESM, and 16.04 isn't cleanly
 > available on public mirrors yet.)
 
-> **HashiCorp tools.** Packages like `packer`, `terraform`, `vault`, etc. aren't
-> in the base repos — when requested, the engine automatically adds HashiCorp's
-> apt repo (key + source) and fetches them. They're only published for certain
-> codenames; if unavailable for the chosen version, the tool says so clearly.
+> **Third-party tools.** Some packages aren't in the base repos: `packer`/
+> `terraform`/… (HashiCorp), `docker-ce`/… (Docker), `wazuh-agent`/… (Wazuh),
+> `gitlab-ce` (GitLab). When one is requested, the engine adds the right apt repo
+> automatically (amd64; if unavailable for the chosen version, the tool says so).
+> You can **pin a version** with `name=version` (e.g. `gitlab-ce=17.5.0-ce.0`) —
+> useful for GitLab's stepped upgrades. Note `gitlab-ce` is large (~1 GB+); mind
+> the per-job quota if you set one.
 
 ---
 

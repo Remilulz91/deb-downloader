@@ -28,8 +28,9 @@ from pathlib import Path
 import distros
 import build_repo
 
-# Strict validation of a Debian/Ubuntu package name.
-PKG_RE = re.compile(r"^[a-z0-9][a-z0-9+._-]*$")
+# Strict validation of a package, optionally pinned to a version: "name" or
+# "name=version" (apt syntax). Still rejects shell metacharacters (injection-safe).
+PKG_RE = re.compile(r"^[a-z0-9][a-z0-9+._-]*(=[A-Za-z0-9][A-Za-z0-9+.~:_-]*)?$")
 
 # Default caps (anti-abuse / host protection)
 DEFAULTS = {
@@ -248,6 +249,12 @@ def run(distro, release, arch, packages, out_dir=None,
             raise FetchError("too_large",
                              "Requested set is too large: %s > %s bytes." % (size, mx),
                              size=size, max=mx)
+        # A pinned version that doesn't exist (apt: "Version 'X' for 'Y' ...").
+        vm = re.search(r"Version '([^']+)' for '([^']+)' was not found", output)
+        if vm:
+            raise FetchError("version_not_found",
+                             "Version %s of %s was not found." % (vm.group(1), vm.group(2)),
+                             version=vm.group(1), package=vm.group(2))
         notfound = sorted(set(
             re.findall(r"Unable to locate package (\S+)", output)
             + re.findall(r"Package '([^']+)' has no installation candidate", output)

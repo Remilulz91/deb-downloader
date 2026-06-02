@@ -5,6 +5,15 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.3.0] — 2026-06-01
+### Added
+- **Version pinning**: request a specific version with `name=version` (apt
+  syntax, e.g. `gitlab-ce=17.5.0-ce.0`) — useful for stepped upgrades.
+- **GitLab CE** via the repo registry (packages.gitlab.com, which keeps the
+  version history). amd64. Note: upgrading GitLab requires stepping through
+  mandatory "stop" versions — use GitLab's Upgrade Path tool and fetch each step.
+- Clear, translated message when a pinned version doesn't exist.
+
 ## [v1.2.0] — 2026-06-01
 ### Added
 - **Wazuh packages** (`wazuh-agent`, `wazuh-manager`, `wazuh-indexer`,
@@ -346,6 +355,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.3.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.0
 [v1.2.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.2.0
 [v1.1.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.0.0
