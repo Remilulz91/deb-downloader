@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.9.0] — 2026-06-01
+### Added
+- **Server disk info** in the tool: free space, plus the per-job limit when set.
+- **Per-job size quota**: set `DDL_MAX_JOB_MB` to reject package sets larger than
+  that **before** downloading, with a clear, translated message. Disabled (`0`)
+  by default. The total size is computed from `apt --print-uris`.
+- New `GET /api/status` endpoint (free/total disk space, quota).
+
 ## [v0.8.2] — 2026-06-01
 ### Fixed
 - `DEPLOY.md`: the `DDL_JOBS_DIR` systemd drop-in now uses a direct,
@@ -238,6 +246,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.9.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.9.0
 [v0.8.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.2
 [v0.8.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.1
 [v0.8.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.8.0

@@ -53,7 +53,8 @@
   .pbar-fill{height:100%;width:0;border-radius:6px;background:linear-gradient(135deg,var(--accent),var(--accent-2));transition:width .3s ease}
   .pbar.indet .pbar-fill{width:35%;animation:indet 1.2s ease-in-out infinite}
   @keyframes indet{0%{margin-left:-35%}100%{margin-left:100%}}
-  footer{color:var(--text-dim);font-size:.8rem;margin-top:24px;text-align:center}
+  .srv{color:var(--text-dim);font-size:.8rem;margin-top:14px;text-align:center}
+  footer{color:var(--text-dim);font-size:.8rem;margin-top:14px;text-align:center}
   footer a{color:var(--text-dim);text-decoration:none}
   footer a:hover{color:var(--text)}
 </style>
@@ -95,6 +96,7 @@
     <div id="status" class="status"></div>
   </div>
 
+  <div id="serverinfo" class="srv"></div>
   <footer><a id="homelink" href="/"></a> · <span id="footer"></span></footer>
 </div>
 
@@ -124,7 +126,10 @@ var I18N = {
     errTooMany: "Too many packages (max {max}).",
     errEmulation: 'Fetching {arch} needs Docker emulation on this host. On an amd64 machine, install it once: <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errNoSpace: "Not enough disk space on the server to build this archive. Try a smaller package set.",
-    errFetch: "The fetch failed. Check the package name and try again."
+    errTooLarge: "The requested set ({size}) exceeds the per-job limit ({max}).",
+    errFetch: "The fetch failed. Check the package name and try again.",
+    srvDisk: "💾 Server disk: {free} free",
+    srvMax: " · max per job: {max}"
   },
   fr: {
     sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
@@ -150,7 +155,10 @@ var I18N = {
     errTooMany: "Trop de paquets (max {max}).",
     errEmulation: 'Récupérer en {arch} nécessite l\'émulation Docker sur cet hôte. Sur une machine amd64, installez-la une fois : <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errNoSpace: "Espace disque insuffisant sur le serveur pour générer cette archive. Essayez un ensemble de paquets plus petit.",
-    errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez."
+    errTooLarge: "L'ensemble demandé ({size}) dépasse la limite par job ({max}).",
+    errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez.",
+    srvDisk: "💾 Disque serveur : {free} libres",
+    srvMax: " · max par job : {max}"
   }
 };
 
@@ -166,6 +174,7 @@ function localizeError(d){
     case "too_many":           return t("errTooMany").replace("{max}", d.max);
     case "emulation_missing":  return t("errEmulation").replace(/\{arch\}/g, d.arch || "arm64");
     case "no_space":           return t("errNoSpace");
+    case "too_large":          return t("errTooLarge").replace("{size}", formatSize(d.size)).replace("{max}", formatSize(d.max));
     default:                   return d.message || t("errFetch");
   }
 }
@@ -177,7 +186,16 @@ var pkgInput = document.getElementById("packages");
 var norec = document.getElementById("norec");
 var goBtn = document.getElementById("go");
 var statusEl = document.getElementById("status");
+var serverInfoEl = document.getElementById("serverinfo");
 var MAP = {};
+var serverStatus = null;
+
+function renderServerInfo(){
+  if(!serverStatus || serverStatus.disk_free == null){ serverInfoEl.textContent = ""; return; }
+  var txt = t("srvDisk").replace("{free}", formatSize(serverStatus.disk_free));
+  if(serverStatus.max_job_bytes) txt += t("srvMax").replace("{max}", formatSize(serverStatus.max_job_bytes));
+  serverInfoEl.textContent = txt;
+}
 
 function formatSize(bytes){
   if (bytes == null) return "";
@@ -202,6 +220,7 @@ function applyLang(){
   var btns = document.querySelectorAll(".lang button");
   for (var i=0;i<btns.length;i++){ btns[i].classList.toggle("active", btns[i].getAttribute("data-lang")===lang); }
   if (lastStatus){ statusEl.innerHTML = lastStatus.fn(); }   // re-render the status in the new language
+  renderServerInfo();                                        // re-render the disk/quota line
 }
 function setLang(l){ lang = (l==="fr")?"fr":"en"; try{localStorage.setItem("ddl_lang",lang);}catch(e){} applyLang(); }
 
@@ -236,6 +255,12 @@ fetch("api/distributions")
     fillReleases();
   })
   .catch(function(){ showStatus("err", function(){ return t("apiErr"); }); });
+
+// Server status (free disk + per-job quota) for the info line.
+fetch("api/status")
+  .then(function(r){ return r.json(); })
+  .then(function(s){ serverStatus = s; renderServerInfo(); })
+  .catch(function(){});
 
 distroSel.addEventListener("change", fillReleases);
 

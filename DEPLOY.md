@@ -282,6 +282,10 @@ to follow the logs. Once enabled, you never start it by hand again.
 > sudo systemctl restart deb-downloader-api
 > ```
 > Check it is applied with: `systemctl show deb-downloader-api -p Environment`
+>
+> **Optional per-job size limit.** Add `Environment=DDL_MAX_JOB_MB=2000` to the
+> same drop-in to reject package sets larger than 2000 MB before downloading
+> (the tool shows the limit and a clear message). `0` / unset means unlimited.
 
 ---
 

@@ -63,6 +63,13 @@ JOBS_DIR = Path(os.environ.get("DDL_JOBS_DIR") or
                 (Path(tempfile.gettempdir()) / "deb-downloader-jobs"))
 JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Optional per-job size quota (megabytes). 0 = unlimited. Set via DDL_MAX_JOB_MB.
+try:
+    MAX_JOB_MB = max(0, int(os.environ.get("DDL_MAX_JOB_MB") or 0))
+except ValueError:
+    MAX_JOB_MB = 0
+MAX_JOB_BYTES = MAX_JOB_MB * 1024 * 1024
+
 _EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 _JOBS = {}               # job_id -> dict
 _LOCK = threading.Lock()
@@ -110,6 +117,17 @@ def api_distributions():
         "distributions": distros.list_supported(),
         "arches": sorted(distros.ARCHES),
     }
+
+
+@app.get("/api/status")
+def api_status():
+    """Server status: free disk space in the jobs dir and the per-job quota."""
+    try:
+        du = shutil.disk_usage(JOBS_DIR)
+        free, total = du.free, du.total
+    except OSError:
+        free, total = None, None
+    return {"disk_free": free, "disk_total": total, "max_job_bytes": MAX_JOB_BYTES}
 
 
 @app.post("/api/jobs")
@@ -188,7 +206,7 @@ def _run_job(job_id, req):
         work.mkdir(parents=True, exist_ok=True)
         zip_path = fetch.run(req.distro, req.release, req.arch, req.packages,
                              out_dir=work, no_recommends=req.no_recommends,
-                             progress_cb=progress)
+                             progress_cb=progress, max_bytes=MAX_JOB_BYTES)
         try:
             count = sum(1 for _ in (work / "debs").glob("*.deb"))
         except OSError:

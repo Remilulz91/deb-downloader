@@ -73,9 +73,10 @@ def validate(distro, release, arch, packages):
 def container_script(packages, no_recommends=False):
     """Script run INSIDE the disposable container.
 
-    Downloads the .deb files straight into the bind-mounted /out/debs so the host
-    can watch progress, and writes the total number of packages to /out/.total
-    first (computed with --print-uris, which resolves without downloading).
+    Resolves the package set with --print-uris (no download) to compute the
+    total count (/out/.total) and total size (/out/.size); enforces the optional
+    per-job size quota (DDL_MAX_BYTES) before downloading; then downloads the
+    .deb straight into the bind-mounted /out/debs so the host can watch progress.
     """
     rec = "--no-install-recommends " if no_recommends else ""
     # packages are already validated -> safe to interpolate; quote them anyway.
@@ -89,10 +90,15 @@ def container_script(packages, no_recommends=False):
         "set -e; export DEBIAN_FRONTEND=noninteractive; "
         f"{apt} update -qq; "
         "mkdir -p /out/debs/partial; "
-        # total number of .deb to fetch (resolve only, no download)
-        f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null "
-        "| grep -oE \"https?://[^ ']+\\.deb\" | sort -u > /out/.urls || true; "
+        # resolve only (no download): capture URIs to compute count + total size
+        f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null > /out/.uris_raw || true; "
+        "grep -oE \"https?://[^ ']+\\.deb\" /out/.uris_raw | sort -u > /out/.urls; "
         "wc -l < /out/.urls > /out/.total; "
+        "awk '$2 ~ /\\.deb$/ {s+=$3} END{print s+0}' /out/.uris_raw > /out/.size; "
+        # enforce the optional per-job size quota BEFORE downloading anything
+        "MAX=\"${DDL_MAX_BYTES:-0}\"; SIZE=\"$(cat /out/.size)\"; "
+        "if [ \"$MAX\" -gt 0 ] && [ \"$SIZE\" -gt \"$MAX\" ]; then "
+        "echo \"DDL_TOO_LARGE size=$SIZE max=$MAX\"; exit 7; fi; "
         # real download, straight into the mounted dir (observable from the host)
         f"{apt} -o Dir::Cache::archives=/out/debs install -y {rec}--download-only {pkgs}; "
         "rm -rf /out/debs/partial /out/debs/lock 2>/dev/null || true; "
@@ -100,12 +106,13 @@ def container_script(packages, no_recommends=False):
     )
 
 
-def docker_command(image, arch, out_host, script, limits, name=None):
+def docker_command(image, arch, out_host, script, limits, name=None, max_bytes=0):
     """Build the `docker run` command (argument list)."""
     platform = distros.PLATFORM.get(arch, "linux/amd64")
     cmd = ["docker", "run", "--rm"]
     if name:
         cmd += ["--name", name]
+    cmd += ["-e", "DDL_MAX_BYTES=%d" % int(max_bytes)]
     cmd += [
         "--platform", platform,
         "--memory", limits["memory"],
@@ -125,12 +132,13 @@ def docker_command(image, arch, out_host, script, limits, name=None):
 
 
 def run(distro, release, arch, packages, out_dir=None,
-        no_recommends=False, limits=None, dry_run=False, progress_cb=None):
+        no_recommends=False, limits=None, dry_run=False, progress_cb=None, max_bytes=0):
     """Fetch packages and build the .zip.
 
     progress_cb(done, total) is called ~once per second while downloading, where
     `done` is the number of .deb already written and `total` the expected count
-    (or None until it is known).
+    (or None until it is known). max_bytes>0 rejects sets larger than that
+    (computed before downloading).
     """
     limits = {**DEFAULTS, **(limits or {})}
     image = validate(distro, release, arch, packages)
@@ -141,7 +149,8 @@ def run(distro, release, arch, packages, out_dir=None,
 
     container = "ddl_" + uuid.uuid4().hex[:12]
     script = container_script(packages, no_recommends)
-    cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits, name=container)
+    cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits,
+                         name=container, max_bytes=max_bytes)
 
     if dry_run:
         print("# [dry-run] Docker command that would be executed:\n")
@@ -196,6 +205,14 @@ def run(distro, release, arch, packages, out_dir=None,
 
     if proc.returncode != 0:
         sys.stderr.write(output)
+        # Per-job size quota exceeded (computed before any download).
+        if "DDL_TOO_LARGE" in output:
+            m = re.search(r"DDL_TOO_LARGE size=(\d+) max=(\d+)", output)
+            size = int(m.group(1)) if m else None
+            mx = int(m.group(2)) if m else int(max_bytes)
+            raise FetchError("too_large",
+                             "Requested set is too large: %s > %s bytes." % (size, mx),
+                             size=size, max=mx)
         notfound = sorted(set(
             re.findall(r"Unable to locate package (\S+)", output)
             + re.findall(r"Package '([^']+)' has no installation candidate", output)
