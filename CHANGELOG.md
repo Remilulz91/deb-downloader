@@ -5,6 +5,12 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.10.3] — 2026-06-01
+### Added
+- **Debian 8 (jessie)** added to the EOL set (`archive.debian.org`) — the most
+  recent reliably-archivable Debian below 9. The Debian source rewrite now also
+  handles older mirror hosts (`httpredir.debian.org`, `http.debian.net`).
+
 ## [v0.10.2] — 2026-06-01
 ### Removed
 - Ubuntu **16.04** from the list: it just left ESM (2026) and is not yet cleanly
@@ -274,6 +280,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.10.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.3
 [v0.10.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.2
 [v0.10.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.1
 [v0.10.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.0

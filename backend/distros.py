@@ -12,6 +12,7 @@ SUPPORTED = {
     ("debian", "11"): "debian:11",
     ("debian", "10"): "debian:10",      # EOL -> archive.debian.org
     ("debian", "9"): "debian:9",        # EOL -> archive.debian.org
+    ("debian", "8"): "debian:8",        # EOL -> archive.debian.org
     ("ubuntu", "26.04"): "ubuntu:26.04",
     ("ubuntu", "24.04"): "ubuntu:24.04",
     ("ubuntu", "22.04"): "ubuntu:22.04",
@@ -25,7 +26,7 @@ SUPPORTED = {
 # End-of-life releases: apt sources must be repointed at archive mirrors and
 # expired Release files tolerated. Best-effort (archives can be slow/flaky).
 _EOL = {
-    ("debian", "10"), ("debian", "9"),
+    ("debian", "10"), ("debian", "9"), ("debian", "8"),
 }
 
 # Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu
@@ -68,9 +69,13 @@ def sources_fixup(distro: str, release: str) -> str:
         return ""
     d = distro.lower().strip()
     if d == "debian":
-        # buster/stretch moved to archive.debian.org; drop -updates (not archived).
+        # EOL releases moved to archive.debian.org; older images may point at
+        # deb.debian.org, httpredir.debian.org or http.debian.net. Drop the
+        # -updates pocket (not kept on the archive).
         return (
             "sed -i -E 's|https?://deb\\.debian\\.org|http://archive.debian.org|g; "
+            "s|https?://httpredir\\.debian\\.org|http://archive.debian.org|g; "
+            "s|https?://http\\.debian\\.net|http://archive.debian.org|g; "
             "s|https?://security\\.debian\\.org|http://archive.debian.org|g' "
             "/etc/apt/sources.list 2>/dev/null || true; "
             "sed -i '/-updates/d' /etc/apt/sources.list 2>/dev/null || true; "
