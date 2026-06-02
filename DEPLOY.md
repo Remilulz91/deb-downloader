@@ -219,6 +219,11 @@ sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 > are not offered for now: 18.04 is still under ESM, and 16.04 isn't cleanly
 > available on public mirrors yet.)
 
+> **HashiCorp tools.** Packages like `packer`, `terraform`, `vault`, etc. aren't
+> in the base repos — when requested, the engine automatically adds HashiCorp's
+> apt repo (key + source) and fetches them. They're only published for certain
+> codenames; if unavailable for the chosen version, the tool says so clearly.
+
 ---
 
 ## 9. Create the Python environment

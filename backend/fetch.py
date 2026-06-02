@@ -70,12 +70,14 @@ def validate(distro, release, arch, packages):
     return image
 
 
-def container_script(packages, no_recommends=False, fixup="", apt_extra=""):
+def container_script(packages, no_recommends=False, fixup="", apt_extra="",
+                     hashicorp=False, arch="amd64"):
     """Script run INSIDE the disposable container.
 
     `fixup` is an optional shell snippet run before `apt-get update` (used to
     repoint apt at archive mirrors for EOL releases); `apt_extra` adds apt
-    options (e.g. tolerating expired Release files).
+    options (e.g. tolerating expired Release files); `hashicorp` adds HashiCorp's
+    apt repo (for packer/terraform/...).
 
     Resolves the package set with --print-uris (no download) to compute the
     total count (/out/.total) and total size (/out/.size); enforces the optional
@@ -90,23 +92,37 @@ def container_script(packages, no_recommends=False, fixup="", apt_extra=""):
     # the SETUID/SETGID capabilities apt would need to switch users — without
     # this option the download method fails ("setgroups: Operation not permitted").
     apt = "apt-get -o APT::Sandbox::User=root" + apt_extra
+
+    hashi = ""
+    if hashicorp:
+        # Add HashiCorp's apt repo (key + source) for the right codename/arch.
+        hashi = (
+            f"{apt} install -y ca-certificates curl gnupg >/dev/null 2>&1; "
+            "install -m 0755 -d /usr/share/keyrings; "
+            "curl -fsSL https://apt.releases.hashicorp.com/gpg "
+            "| gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg; "
+            ". /etc/os-release; CN=\"${UBUNTU_CODENAME:-$VERSION_CODENAME}\"; "
+            "echo \"deb [arch=" + arch + " signed-by=/usr/share/keyrings/"
+            "hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com "
+            "$CN main\" > /etc/apt/sources.list.d/hashicorp.list; "
+            f"{apt} update -qq || true; "
+        )
+
     return (
-        "set -e; export DEBIAN_FRONTEND=noninteractive; " + fixup
-        + f"{apt} update -qq; "
-        "mkdir -p /out/debs/partial; "
-        # resolve only (no download): capture URIs to compute count + total size
-        f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null > /out/.uris_raw || true; "
-        "grep -oE \"https?://[^ ']+\\.deb\" /out/.uris_raw | sort -u > /out/.urls; "
-        "wc -l < /out/.urls > /out/.total; "
-        "awk '$2 ~ /\\.deb$/ {s+=$3} END{print s+0}' /out/.uris_raw > /out/.size; "
-        # enforce the optional per-job size quota BEFORE downloading anything
-        "MAX=\"${DDL_MAX_BYTES:-0}\"; SIZE=\"$(cat /out/.size)\"; "
-        "if [ \"$MAX\" -gt 0 ] && [ \"$SIZE\" -gt \"$MAX\" ]; then "
-        "echo \"DDL_TOO_LARGE size=$SIZE max=$MAX\"; exit 7; fi; "
-        # real download, straight into the mounted dir (observable from the host)
-        f"{apt} -o Dir::Cache::archives=/out/debs install -y {rec}--download-only {pkgs}; "
-        "rm -rf /out/debs/partial /out/debs/lock 2>/dev/null || true; "
-        "ls -1 /out/debs/*.deb 2>/dev/null | wc -l > /out/.count"
+        "set -e; export DEBIAN_FRONTEND=noninteractive; "
+        + fixup
+        + f"{apt} update -qq; mkdir -p /out/debs/partial; "
+        + hashi
+        + f"{apt} install -y {rec}--print-uris {pkgs} 2>/dev/null > /out/.uris_raw || true; "
+        + "grep -oE \"https?://[^ ']+\\.deb\" /out/.uris_raw | sort -u > /out/.urls; "
+        + "wc -l < /out/.urls > /out/.total; "
+        + "awk '$2 ~ /\\.deb$/ {s+=$3} END{print s+0}' /out/.uris_raw > /out/.size; "
+        + "MAX=\"${DDL_MAX_BYTES:-0}\"; SIZE=\"$(cat /out/.size)\"; "
+        + "if [ \"$MAX\" -gt 0 ] && [ \"$SIZE\" -gt \"$MAX\" ]; then "
+        + "echo \"DDL_TOO_LARGE size=$SIZE max=$MAX\"; exit 7; fi; "
+        + f"{apt} -o Dir::Cache::archives=/out/debs install -y {rec}--download-only {pkgs}; "
+        + "rm -rf /out/debs/partial /out/debs/lock 2>/dev/null || true; "
+        + "ls -1 /out/debs/*.deb 2>/dev/null | wc -l > /out/.count"
     )
 
 
@@ -154,7 +170,8 @@ def run(distro, release, arch, packages, out_dir=None,
     container = "ddl_" + uuid.uuid4().hex[:12]
     script = container_script(packages, no_recommends,
                              fixup=distros.sources_fixup(distro, release),
-                             apt_extra=distros.apt_opts(distro, release))
+                             apt_extra=distros.apt_opts(distro, release),
+                             hashicorp=distros.needs_hashicorp(packages), arch=arch)
     cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits,
                          name=container, max_bytes=max_bytes)
 
@@ -225,6 +242,14 @@ def run(distro, release, arch, packages, out_dir=None,
             + re.findall(r"Couldn't find any package by regex '([^']+)'", output)
         ))
         if notfound:
+            # If a HashiCorp package is the one missing, it almost certainly means
+            # HashiCorp doesn't publish for this codename -> clearer message.
+            hashi_missing = sorted(set(notfound) & distros.HASHICORP_PACKAGES)
+            if hashi_missing:
+                raise FetchError("hashicorp_unavailable",
+                                 "Not published by HashiCorp for %s %s: %s"
+                                 % (distro, release, ", ".join(hashi_missing)),
+                                 packages=hashi_missing, distro=distro, release=release)
             raise FetchError("package_not_found",
                              "Package(s) not found: " + ", ".join(notfound),
                              packages=notfound)

@@ -54,6 +54,18 @@ def image_for(distro: str, release: str) -> str:
     return SUPPORTED[key]
 
 
+# Packages that live in HashiCorp's apt repo (not in the base Debian/Ubuntu
+# repos). When one is requested, the engine adds the HashiCorp repo + key.
+HASHICORP_PACKAGES = {
+    "packer", "terraform", "vault", "consul", "nomad",
+    "boundary", "waypoint", "vagrant",
+}
+
+
+def needs_hashicorp(packages) -> bool:
+    return any(p in HASHICORP_PACKAGES for p in packages)
+
+
 def is_eol(distro: str, release: str) -> bool:
     return (distro.lower().strip(), release.strip()) in _EOL
 

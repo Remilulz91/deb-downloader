@@ -127,6 +127,7 @@ var I18N = {
     errEmulation: 'Fetching {arch} needs Docker emulation on this host. On an amd64 machine, install it once: <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errNoSpace: "Not enough disk space on the server to build this archive. Try a smaller package set.",
     errTooLarge: "The requested set ({size}) exceeds the per-job limit ({max}).",
+    errHashicorp: "{pkgs} (HashiCorp) is not available for {distro} {release}. Try a version HashiCorp publishes (e.g. Ubuntu 22.04/24.04, Debian 12).",
     errFetch: "The fetch failed. Check the package name and try again.",
     srvDisk: "💾 Server disk: {free} free",
     srvMax: " · max per job: {max}"
@@ -156,6 +157,7 @@ var I18N = {
     errEmulation: 'Récupérer en {arch} nécessite l\'émulation Docker sur cet hôte. Sur une machine amd64, installez-la une fois : <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errNoSpace: "Espace disque insuffisant sur le serveur pour générer cette archive. Essayez un ensemble de paquets plus petit.",
     errTooLarge: "L'ensemble demandé ({size}) dépasse la limite par job ({max}).",
+    errHashicorp: "{pkgs} (HashiCorp) n'est pas disponible pour {distro} {release}. Essayez une version publiée par HashiCorp (ex. Ubuntu 22.04/24.04, Debian 12).",
     errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez.",
     srvDisk: "💾 Disque serveur : {free} libres",
     srvMax: " · max par job : {max}"
@@ -175,6 +177,7 @@ function localizeError(d){
     case "emulation_missing":  return t("errEmulation").replace(/\{arch\}/g, d.arch || "arm64");
     case "no_space":           return t("errNoSpace");
     case "too_large":          return t("errTooLarge").replace("{size}", formatSize(d.size)).replace("{max}", formatSize(d.max));
+    case "hashicorp_unavailable": return t("errHashicorp").replace("{pkgs}", (d.packages||[]).join(", ")).replace("{distro}", d.distro||"").replace("{release}", d.release||"");
     default:                   return d.message || t("errFetch");
   }
 }

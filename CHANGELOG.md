@@ -5,6 +5,16 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.11.0] — 2026-06-01
+### Added
+- **HashiCorp packages** (`packer`, `terraform`, `vault`, `consul`, `nomad`,
+  `boundary`, `waypoint`, `vagrant`): when one is requested, the engine
+  automatically adds HashiCorp's apt repo (GPG key + source for the right
+  codename and architecture) and fetches it with its dependencies — no special
+  action needed, just type the name.
+- Clear, translated message when a HashiCorp package isn't published for the
+  chosen distro/version (HashiCorp only ships certain codenames).
+
 ## [v0.10.4] — 2026-06-01
 ### Removed
 - Debian **8 (jessie)** from the EOL set: its old apt (1.0.x) treats the expired
@@ -288,6 +298,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.11.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.0
 [v0.10.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.4
 [v0.10.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.3
 [v0.10.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.2
