@@ -67,6 +67,12 @@ def validate(distro, release, arch, packages):
     bad = [p for p in packages if not PKG_RE.match(p)]
     if bad:
         raise FetchError("invalid_names", f"Invalid package name(s): {bad}", names=bad)
+    # HashiCorp doesn't publish for EOL codenames -> reject early, cleanly.
+    hashi = sorted(set(packages) & distros.HASHICORP_PACKAGES)
+    if hashi and distros.is_eol(distro, release):
+        raise FetchError("hashicorp_unavailable",
+                         "HashiCorp packages are not available on EOL releases.",
+                         packages=hashi, distro=distro, release=release)
     return image
 
 
@@ -97,13 +103,13 @@ def container_script(packages, no_recommends=False, fixup="", apt_extra="",
     if hashicorp:
         # Add HashiCorp's apt repo (key + source) for the right codename/arch.
         hashi = (
-            f"{apt} install -y ca-certificates curl gnupg >/dev/null 2>&1; "
-            "install -m 0755 -d /usr/share/keyrings; "
+            f"{apt} install -y ca-certificates curl >/dev/null 2>&1; "
+            # Store the armored key directly in trusted.gpg.d (.asc). This avoids
+            # running gpg --dearmor, which can hang under arm64 qemu emulation.
             "curl -fsSL https://apt.releases.hashicorp.com/gpg "
-            "| gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg; "
+            "-o /etc/apt/trusted.gpg.d/hashicorp.asc; "
             ". /etc/os-release; CN=\"${UBUNTU_CODENAME:-$VERSION_CODENAME}\"; "
-            "echo \"deb [arch=" + arch + " signed-by=/usr/share/keyrings/"
-            "hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com "
+            "echo \"deb [arch=" + arch + "] https://apt.releases.hashicorp.com "
             "$CN main\" > /etc/apt/sources.list.d/hashicorp.list; "
             f"{apt} update -qq || true; "
         )

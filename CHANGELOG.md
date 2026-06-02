@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.11.1] — 2026-06-01
+### Fixed
+- HashiCorp packages on **arm64** no longer hang at dependency resolution: the
+  repo key is stored as an armored `.asc` in `trusted.gpg.d` instead of running
+  `gpg --dearmor`, which could hang under arm64 qemu emulation.
+- HashiCorp packages are now refused up front on **EOL** releases (Debian 10/9),
+  with the clear "not available" message.
+
 ## [v0.11.0] — 2026-06-01
 ### Added
 - **HashiCorp packages** (`packer`, `terraform`, `vault`, `consul`, `nomad`,
@@ -298,6 +306,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.11.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.1
 [v0.11.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.0
 [v0.10.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.4
 [v0.10.3]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.3
