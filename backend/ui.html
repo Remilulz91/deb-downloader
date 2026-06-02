@@ -116,6 +116,7 @@ var I18N = {
     errNotFound: "Package(s) not found: {pkgs}. Check the exact name — it may not exist in this distribution's repositories.",
     errInvalid: "Invalid package name(s): {names}. Use lowercase letters, digits and + . _ -.",
     errTooMany: "Too many packages (max {max}).",
+    errEmulation: 'Fetching {arch} needs Docker emulation on this host. On an amd64 machine, install it once: <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errFetch: "The fetch failed. Check the package name and try again."
   },
   fr: {
@@ -138,6 +139,7 @@ var I18N = {
     errNotFound: "Paquet(s) introuvable(s) : {pkgs}. Vérifiez le nom exact — il n'existe peut-être pas dans les dépôts de cette distribution.",
     errInvalid: "Nom(s) de paquet invalide(s) : {names}. Utilisez minuscules, chiffres et + . _ -.",
     errTooMany: "Trop de paquets (max {max}).",
+    errEmulation: 'Récupérer en {arch} nécessite l\'émulation Docker sur cet hôte. Sur une machine amd64, installez-la une fois : <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errFetch: "La récupération a échoué. Vérifiez le nom du paquet et réessayez."
   }
 };
@@ -152,6 +154,7 @@ function localizeError(d){
     case "package_not_found": return t("errNotFound").replace("{pkgs}", (d.packages||[]).join(", "));
     case "invalid_names":      return t("errInvalid").replace("{names}", (d.names||[]).join(", "));
     case "too_many":           return t("errTooMany").replace("{max}", d.max);
+    case "emulation_missing":  return t("errEmulation").replace(/\{arch\}/g, d.arch || "arm64");
     default:                   return d.message || t("errFetch");
   }
 }

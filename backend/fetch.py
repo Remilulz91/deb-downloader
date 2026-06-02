@@ -152,6 +152,14 @@ def run(distro, release, arch, packages, out_dir=None,
             raise FetchError("package_not_found",
                              "Package(s) not found: " + ", ".join(notfound),
                              packages=notfound)
+        # Missing CPU emulation for a foreign architecture (e.g. arm64 on amd64).
+        if "exec format error" in output or "no matching manifest" in output:
+            raise FetchError(
+                "emulation_missing",
+                "Architecture '%s' needs Docker emulation on this host "
+                "(install: docker run --privileged --rm tonistiigi/binfmt --install %s)."
+                % (arch, arch),
+                arch=arch)
         # Otherwise surface a short, clean tail of the error (no command dump).
         tail = [ln for ln in output.strip().splitlines() if ln.strip()][-4:]
         raise FetchError("fetch_failed", "\n".join(tail) or "The fetch failed.")

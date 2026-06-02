@@ -5,6 +5,13 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.7.1] — 2026-06-01
+### Fixed
+- Selecting `arm64` on an amd64 host without emulation now shows a clear,
+  translated message explaining how to enable it
+  (`docker run --privileged --rm tonistiigi/binfmt --install arm64`), instead of
+  the raw "exec format error" Docker output.
+
 ## [v0.7.0] — 2026-06-01
 ### Added
 - **More distributions**: Debian 11 / 12 / 13 and Ubuntu 20.04 / 22.04 / 24.04 /
@@ -202,6 +209,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.7.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.1
 [v0.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.0
 [v0.6.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.0
