@@ -5,6 +5,15 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.7.0] — 2026-06-01
+### Added
+- **More distributions**: Debian 11 / 12 / 13 and Ubuntu 20.04 / 22.04 / 24.04 /
+  26.04 (the versions whose apt mirrors are still live).
+- **Architecture selector** (`amd64` / `arm64`) in the tool. Fetching `arm64`
+  from an `amd64` host requires Docker binfmt emulation (see `DEPLOY.md`).
+- **UX**: once a fetch finishes, the page shows the package count and archive
+  size and offers a "Download again" link.
+
 ## [v0.6.1] — 2026-06-01
 ### Fixed
 - The tool page (`/app`) is now served with **no-cache** headers, so a new
@@ -193,6 +202,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.7.0
 [v0.6.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.6.0
 [v0.5.8]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.5.8

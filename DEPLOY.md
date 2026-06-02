@@ -205,6 +205,14 @@ sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 > The `docker` group membership is required: the API calls Docker on your
 > behalf. Without it, fetches fail with a permission error.
 
+> **Optional — fetching `arm64` packages on an amd64 machine.** The tool offers
+> an `amd64`/`arm64` selector. To fetch `arm64` from an `amd64` host, install
+> Docker's emulation once:
+> ```bash
+> docker run --privileged --rm tonistiigi/binfmt --install arm64
+> ```
+> Without it, `arm64` fetches fail. (Native arm64 hosts need nothing extra.)
+
 ---
 
 ## 9. Create the Python environment

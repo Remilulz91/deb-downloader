@@ -30,8 +30,8 @@
   label.lbl-first{margin-top:0}
   select,input[type=text]{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--border);
     background:var(--bg-soft);color:var(--text);font-size:1rem}
-  .row{display:flex;gap:14px}
-  .row>div{flex:1}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:140px}
   .check{display:flex;align-items:center;gap:9px;margin-top:16px;color:var(--text-dim);font-weight:400}
   .check input{width:auto}
   .hint{color:var(--text-dim);font-size:.85rem;margin-top:5px}
@@ -75,6 +75,10 @@
         <label class="lbl-first" id="lbl-release" for="release"></label>
         <select id="release"></select>
       </div>
+      <div>
+        <label class="lbl-first" id="lbl-arch" for="arch"></label>
+        <select id="arch"></select>
+      </div>
     </div>
 
     <label id="lbl-packages" for="packages"></label>
@@ -94,7 +98,7 @@
 var I18N = {
   en: {
     sub: "Pick a distribution, type one or more packages, and download a <b>.zip</b> containing the packages plus all their dependencies (offline-ready).",
-    distro: "Distribution", release: "Version", packages: "Package(s)",
+    distro: "Distribution", release: "Version", arch: "Architecture", packages: "Package(s)",
     placeholder: "e.g. nginx  (space or comma separated)",
     hint: "Lowercase names only — letters, digits and + . _ -.",
     norec: "Exclude recommended packages",
@@ -106,6 +110,8 @@ var I18N = {
     queued: '<span class="spin"></span>Queued… waiting for a free worker.',
     working: '<span class="spin"></span>Fetching {pkgs} for {distro} {release}… This can take a while.',
     done: "✅ Done — your download (<b>{name}</b>) has started.",
+    doneMeta: "{count} package(s) · {size}",
+    redownload: "Download again",
     failPrefix: "❌ ",
     errNotFound: "Package(s) not found: {pkgs}. Check the exact name — it may not exist in this distribution's repositories.",
     errInvalid: "Invalid package name(s): {names}. Use lowercase letters, digits and + . _ -.",
@@ -114,7 +120,7 @@ var I18N = {
   },
   fr: {
     sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
-    distro: "Distribution", release: "Version", packages: "Paquet(s)",
+    distro: "Distribution", release: "Version", arch: "Architecture", packages: "Paquet(s)",
     placeholder: "ex. nginx  (séparés par espace ou virgule)",
     hint: "Noms en minuscules uniquement — lettres, chiffres et + . _ -.",
     norec: "Exclure les paquets recommandés",
@@ -126,6 +132,8 @@ var I18N = {
     queued: '<span class="spin"></span>En file d\'attente… en attente d\'un emplacement libre.',
     working: '<span class="spin"></span>Récupération de {pkgs} pour {distro} {release}… Cela peut prendre un moment.',
     done: "✅ Terminé — votre téléchargement (<b>{name}</b>) a démarré.",
+    doneMeta: "{count} paquet(s) · {size}",
+    redownload: "Télécharger à nouveau",
     failPrefix: "❌ ",
     errNotFound: "Paquet(s) introuvable(s) : {pkgs}. Vérifiez le nom exact — il n'existe peut-être pas dans les dépôts de cette distribution.",
     errInvalid: "Nom(s) de paquet invalide(s) : {names}. Utilisez minuscules, chiffres et + . _ -.",
@@ -150,17 +158,26 @@ function localizeError(d){
 
 var distroSel = document.getElementById("distro");
 var releaseSel = document.getElementById("release");
+var archSel = document.getElementById("arch");
 var pkgInput = document.getElementById("packages");
 var norec = document.getElementById("norec");
 var goBtn = document.getElementById("go");
 var statusEl = document.getElementById("status");
 var MAP = {};
 
+function formatSize(bytes){
+  if (bytes == null) return "";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return (bytes/1024).toFixed(0) + " KB";
+  return (bytes/1048576).toFixed(1) + " MB";
+}
+
 function applyLang(){
   document.documentElement.lang = lang;
   document.getElementById("sub").innerHTML = t("sub");
   document.getElementById("lbl-distro").textContent = t("distro");
   document.getElementById("lbl-release").textContent = t("release");
+  document.getElementById("lbl-arch").textContent = t("arch");
   document.getElementById("lbl-packages").textContent = t("packages");
   document.getElementById("hint").textContent = t("hint");
   document.getElementById("lbl-norec").textContent = t("norec");
@@ -198,6 +215,10 @@ fetch("api/distributions")
       o.value = d; o.textContent = d.charAt(0).toUpperCase() + d.slice(1);
       distroSel.appendChild(o);
     });
+    (data.arches || ["amd64"]).forEach(function(arch){
+      var o = document.createElement("option"); o.value = arch; o.textContent = arch;
+      archSel.appendChild(o);
+    });
     fillReleases();
   })
   .catch(function(){ showStatus("err", function(){ return t("apiErr"); }); });
@@ -228,10 +249,22 @@ function pollJob(jobId, pkgsStr, distroV, relV){
         setTimeout(function(){ pollJob(jobId, pkgsStr, distroV, relV); }, 2000);
       } else if(j.status === "done"){
         var name = j.filename || "packages.zip";
+        var dlUrl = j.download_url || ("api/jobs/" + jobId + "/download");
+        var count = j.package_count, sizeStr = formatSize(j.size);
         var a = document.createElement("a");
-        a.href = "api/jobs/" + jobId + "/download"; a.download = name;
+        a.href = dlUrl; a.download = name;
         document.body.appendChild(a); a.click(); a.remove();
-        showStatus("ok", function(){ return t("done").replace("{name}", name); });
+        showStatus("ok", function(){
+          var html = t("done").replace("{name}", name);
+          if (count != null || sizeStr){
+            html += '<div style="margin-top:6px;font-size:.88rem;opacity:.85">'
+                  + t("doneMeta").replace("{count}", count == null ? "?" : count).replace("{size}", sizeStr)
+                  + '</div>';
+          }
+          html += '<div style="margin-top:8px"><a href="' + dlUrl + '" download="' + name
+                + '" style="color:var(--ok);text-decoration:underline">' + t("redownload") + '</a></div>';
+          return html;
+        });
         goBtn.disabled = false;
       } else { // error
         showError(j.error, null);
@@ -246,7 +279,7 @@ goBtn.addEventListener("click", function(){
   if(packages.length === 0){ showStatus("err", function(){ return t("noPkg"); }); return; }
 
   var body = {
-    distro: distroSel.value, release: releaseSel.value, arch: "amd64",
+    distro: distroSel.value, release: releaseSel.value, arch: archSel.value || "amd64",
     packages: packages, no_recommends: norec.checked
   };
   var pkgsStr = packages.join(", "), distroV = distroSel.value, relV = releaseSel.value;

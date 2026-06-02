@@ -5,14 +5,22 @@ Maps (distribution, version) -> official Docker image, plus architectures.
 Extend this dictionary to add new versions later.
 """
 
-# Key: (distro, release) -> base Docker image
+# Key: (distro, release) -> base Docker image. Newest first per distro.
+# Only versions whose apt mirrors are still live are listed (EOL / non-LTS
+# releases moved to archive mirrors and would fail).
 SUPPORTED = {
     ("debian", "13"): "debian:13",
+    ("debian", "12"): "debian:12",
+    ("debian", "11"): "debian:11",
     ("ubuntu", "26.04"): "ubuntu:26.04",
+    ("ubuntu", "24.04"): "ubuntu:24.04",
+    ("ubuntu", "22.04"): "ubuntu:22.04",
+    ("ubuntu", "20.04"): "ubuntu:20.04",
 }
 
-# Allowed architectures (MVP: amd64 only)
-ARCHES = {"amd64"}
+# Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu
+# emulation installed (see DEPLOY.md).
+ARCHES = {"amd64", "arm64"}
 
 # docker --platform matching the requested arch
 PLATFORM = {
