@@ -5,6 +5,14 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.11.2] — 2026-06-01
+### Changed
+- HashiCorp packages are now restricted to **reliable combinations only**:
+  `amd64`, **non-EOL** releases, and **not Ubuntu 20.04** (where packer pulled
+  ~74 unrelated dependencies). `arm64` is excluded because it hangs under qemu
+  emulation. Any other combination shows a clear "not available" message
+  (now including the architecture).
+
 ## [v0.11.1] — 2026-06-01
 ### Fixed
 - HashiCorp packages on **arm64** no longer hang at dependency resolution: the
@@ -306,6 +314,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v0.11.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.2
 [v0.11.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.1
 [v0.11.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.11.0
 [v0.10.4]: https://github.com/Remilulz91/deb-downloader/releases/tag/v0.10.4

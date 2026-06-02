@@ -66,6 +66,24 @@ def needs_hashicorp(packages) -> bool:
     return any(p in HASHICORP_PACKAGES for p in packages)
 
 
+# HashiCorp fetching is restricted to what's reliable:
+#  - amd64 only (arm64 hangs under qemu emulation, the common deployment);
+#  - not on EOL releases (HashiCorp doesn't publish for those codenames);
+#  - Ubuntu 20.04 excluded (packer pulls dozens of unrelated deps there).
+HASHICORP_ARCHES = {"amd64"}
+HASHICORP_BLOCKED = {("ubuntu", "20.04")}
+
+
+def hashicorp_supported(distro: str, release: str, arch: str) -> bool:
+    if arch not in HASHICORP_ARCHES:
+        return False
+    if is_eol(distro, release):
+        return False
+    if (distro.lower().strip(), release.strip()) in HASHICORP_BLOCKED:
+        return False
+    return True
+
+
 def is_eol(distro: str, release: str) -> bool:
     return (distro.lower().strip(), release.strip()) in _EOL
 

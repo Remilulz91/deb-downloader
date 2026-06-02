@@ -67,12 +67,13 @@ def validate(distro, release, arch, packages):
     bad = [p for p in packages if not PKG_RE.match(p)]
     if bad:
         raise FetchError("invalid_names", f"Invalid package name(s): {bad}", names=bad)
-    # HashiCorp doesn't publish for EOL codenames -> reject early, cleanly.
+    # HashiCorp fetching is restricted to reliable combos (amd64, non-EOL, not
+    # Ubuntu 20.04) -> reject anything else early, cleanly.
     hashi = sorted(set(packages) & distros.HASHICORP_PACKAGES)
-    if hashi and distros.is_eol(distro, release):
+    if hashi and not distros.hashicorp_supported(distro, release, arch):
         raise FetchError("hashicorp_unavailable",
-                         "HashiCorp packages are not available on EOL releases.",
-                         packages=hashi, distro=distro, release=release)
+                         "HashiCorp packages aren't available for this distro/version/arch.",
+                         packages=hashi, distro=distro, release=release, arch=arch)
     return image
 
 
@@ -255,7 +256,8 @@ def run(distro, release, arch, packages, out_dir=None,
                 raise FetchError("hashicorp_unavailable",
                                  "Not published by HashiCorp for %s %s: %s"
                                  % (distro, release, ", ".join(hashi_missing)),
-                                 packages=hashi_missing, distro=distro, release=release)
+                                 packages=hashi_missing, distro=distro, release=release,
+                                 arch=arch)
             raise FetchError("package_not_found",
                              "Package(s) not found: " + ", ".join(notfound),
                              packages=notfound)
