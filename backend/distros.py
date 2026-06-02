@@ -16,15 +16,16 @@ SUPPORTED = {
     ("ubuntu", "24.04"): "ubuntu:24.04",
     ("ubuntu", "22.04"): "ubuntu:22.04",
     ("ubuntu", "20.04"): "ubuntu:20.04",
-    ("ubuntu", "18.04"): "ubuntu:18.04",  # EOL -> old-releases.ubuntu.com
     ("ubuntu", "16.04"): "ubuntu:16.04",  # EOL -> old-releases.ubuntu.com
+    # 18.04 is still under ESM (until 2028): not on public mirrors, needs an
+    # Ubuntu Pro token. Re-add it once it fully EOLs and moves to old-releases.
 }
 
 # End-of-life releases: apt sources must be repointed at archive mirrors and
 # expired Release files tolerated. Best-effort (archives can be slow/flaky).
 _EOL = {
     ("debian", "10"), ("debian", "9"),
-    ("ubuntu", "18.04"), ("ubuntu", "16.04"),
+    ("ubuntu", "16.04"),
 }
 
 # Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu
@@ -75,11 +76,13 @@ def sources_fixup(distro: str, release: str) -> str:
             "sed -i '/-updates/d' /etc/apt/sources.list 2>/dev/null || true; "
         )
     if d == "ubuntu":
-        # bionic/xenial moved to old-releases.ubuntu.com.
+        # xenial moved to old-releases.ubuntu.com; only the base suite remains
+        # there (the -updates/-backports/-security pockets are gone -> 404).
         return (
             "sed -i -E 's|https?://[a-z.]*archive\\.ubuntu\\.com|http://old-releases.ubuntu.com|g; "
             "s|https?://security\\.ubuntu\\.com|http://old-releases.ubuntu.com|g' "
             "/etc/apt/sources.list 2>/dev/null || true; "
+            "sed -i -E '/-(updates|backports|security)/d' /etc/apt/sources.list 2>/dev/null || true; "
         )
     return ""
 
