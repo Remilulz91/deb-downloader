@@ -205,14 +205,6 @@ sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 > The `docker` group membership is required: the API calls Docker on your
 > behalf. Without it, fetches fail with a permission error.
 
-> **Optional — fetching `arm64` packages on an amd64 machine.** The tool offers
-> an `amd64`/`arm64` selector. To fetch `arm64` from an `amd64` host, install
-> Docker's emulation once:
-> ```bash
-> docker run --privileged --rm tonistiigi/binfmt --install arm64
-> ```
-> Without it, `arm64` fetches fail. (Native arm64 hosts need nothing extra.)
-
 > **EOL versions (best-effort).** Debian 10/9 are marked "(EOL)" in the
 > selector; the engine automatically repoints apt at `archive.debian.org`.
 > Nothing to install, but the archive mirror can be slower. (Ubuntu EOL versions

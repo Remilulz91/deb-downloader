@@ -105,9 +105,9 @@ def container_script(packages, no_recommends=False, fixup="", apt_extra="", repo
     extra = ""
     if repo:
         repo_id, key_url, deb_line = repo
-        # Add the third-party repo: tools, armored key in trusted.gpg.d (.asc, so
-        # we never run gpg --dearmor, which can hang under arm64 emulation), and
-        # the deb source for the resolved codename ($CN).
+        # Add the third-party repo: tools, the armored key dropped straight into
+        # trusted.gpg.d (.asc, so we don't need gnupg/gpg --dearmor), and the deb
+        # source for the resolved codename ($CN).
         extra = (
             apt + " install -y ca-certificates curl >/dev/null 2>&1; "
             + "curl -fsSL " + key_url + " -o /etc/apt/trusted.gpg.d/" + repo_id + ".asc; "
@@ -274,13 +274,6 @@ def run(distro, release, arch, packages, out_dir=None,
             raise FetchError("package_not_found",
                              "Package(s) not found: " + ", ".join(notfound),
                              packages=notfound)
-        if "exec format error" in output or "no matching manifest" in output:
-            raise FetchError(
-                "emulation_missing",
-                "Architecture '%s' needs Docker emulation on this host "
-                "(install: docker run --privileged --rm tonistiigi/binfmt --install %s)."
-                % (arch, arch),
-                arch=arch)
         tail = [ln for ln in output.strip().splitlines() if ln.strip()][-4:]
         raise FetchError("fetch_failed", "\n".join(tail) or "The fetch failed.")
 

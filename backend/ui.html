@@ -80,10 +80,6 @@
         <label class="lbl-first" id="lbl-release" for="release"></label>
         <select id="release"></select>
       </div>
-      <div>
-        <label class="lbl-first" id="lbl-arch" for="arch"></label>
-        <select id="arch"></select>
-      </div>
     </div>
 
     <label id="lbl-packages" for="packages"></label>
@@ -104,7 +100,7 @@
 var I18N = {
   en: {
     sub: "Pick a distribution, type one or more packages, and download a <b>.zip</b> containing the packages plus all their dependencies (offline-ready).",
-    distro: "Distribution", release: "Version", arch: "Architecture", packages: "Package(s)",
+    distro: "Distribution", release: "Version", packages: "Package(s)",
     placeholder: "e.g. nginx  (space or comma separated)",
     hint: "Lowercase names. Pin a version with name=version (e.g. gitlab-ce=17.5.0-ce.0).",
     norec: "Exclude recommended packages",
@@ -124,7 +120,6 @@ var I18N = {
     errNotFound: "Package(s) not found: {pkgs}. Check the exact name — it may not exist in this distribution's repositories.",
     errInvalid: "Invalid package name(s): {names}. Use lowercase letters, digits and + . _ -.",
     errTooMany: "Too many packages (max {max}).",
-    errEmulation: 'Fetching {arch} needs Docker emulation on this host. On an amd64 machine, install it once: <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errNoSpace: "Not enough disk space on the server to build this archive. Try a smaller package set.",
     errTooLarge: "The requested set ({size}) exceeds the per-job limit ({max}).",
     errRepo: "{pkgs} ({repo}) is not available for {distro} {release} ({arch}). Use amd64 on a supported version (e.g. Debian 11/12/13, Ubuntu 22.04/24.04).",
@@ -135,7 +130,7 @@ var I18N = {
   },
   fr: {
     sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
-    distro: "Distribution", release: "Version", arch: "Architecture", packages: "Paquet(s)",
+    distro: "Distribution", release: "Version", packages: "Paquet(s)",
     placeholder: "ex. nginx  (séparés par espace ou virgule)",
     hint: "Noms en minuscules. Épinglez une version avec nom=version (ex. gitlab-ce=17.5.0-ce.0).",
     norec: "Exclure les paquets recommandés",
@@ -155,7 +150,6 @@ var I18N = {
     errNotFound: "Paquet(s) introuvable(s) : {pkgs}. Vérifiez le nom exact — il n'existe peut-être pas dans les dépôts de cette distribution.",
     errInvalid: "Nom(s) de paquet invalide(s) : {names}. Utilisez minuscules, chiffres et + . _ -.",
     errTooMany: "Trop de paquets (max {max}).",
-    errEmulation: 'Récupérer en {arch} nécessite l\'émulation Docker sur cet hôte. Sur une machine amd64, installez-la une fois : <code>docker run --privileged --rm tonistiigi/binfmt --install {arch}</code>',
     errNoSpace: "Espace disque insuffisant sur le serveur pour générer cette archive. Essayez un ensemble de paquets plus petit.",
     errTooLarge: "L'ensemble demandé ({size}) dépasse la limite par job ({max}).",
     errRepo: "{pkgs} ({repo}) n'est pas disponible pour {distro} {release} ({arch}). Utilisez amd64 sur une version prise en charge (ex. Debian 11/12/13, Ubuntu 22.04/24.04).",
@@ -176,7 +170,6 @@ function localizeError(d){
     case "package_not_found": return t("errNotFound").replace("{pkgs}", (d.packages||[]).join(", "));
     case "invalid_names":      return t("errInvalid").replace("{names}", (d.names||[]).join(", "));
     case "too_many":           return t("errTooMany").replace("{max}", d.max);
-    case "emulation_missing":  return t("errEmulation").replace(/\{arch\}/g, d.arch || "arm64");
     case "no_space":           return t("errNoSpace");
     case "too_large":          return t("errTooLarge").replace("{size}", formatSize(d.size)).replace("{max}", formatSize(d.max));
     case "repo_unavailable":   return t("errRepo").replace("{pkgs}", (d.packages||[]).join(", ")).replace("{repo}", d.repo||"").replace("{distro}", d.distro||"").replace("{release}", d.release||"").replace("{arch}", d.arch||"");
@@ -187,7 +180,6 @@ function localizeError(d){
 
 var distroSel = document.getElementById("distro");
 var releaseSel = document.getElementById("release");
-var archSel = document.getElementById("arch");
 var pkgInput = document.getElementById("packages");
 var norec = document.getElementById("norec");
 var goBtn = document.getElementById("go");
@@ -215,7 +207,6 @@ function applyLang(){
   document.getElementById("sub").innerHTML = t("sub");
   document.getElementById("lbl-distro").textContent = t("distro");
   document.getElementById("lbl-release").textContent = t("release");
-  document.getElementById("lbl-arch").textContent = t("arch");
   document.getElementById("lbl-packages").textContent = t("packages");
   document.getElementById("hint").textContent = t("hint");
   document.getElementById("lbl-norec").textContent = t("norec");
@@ -256,10 +247,6 @@ fetch("api/distributions")
       var o = document.createElement("option");
       o.value = d; o.textContent = d.charAt(0).toUpperCase() + d.slice(1);
       distroSel.appendChild(o);
-    });
-    (data.arches || ["amd64"]).forEach(function(arch){
-      var o = document.createElement("option"); o.value = arch; o.textContent = arch;
-      archSel.appendChild(o);
     });
     fillReleases();
   })
@@ -333,7 +320,7 @@ goBtn.addEventListener("click", function(){
   if(packages.length === 0){ showStatus("err", function(){ return t("noPkg"); }); return; }
 
   var body = {
-    distro: distroSel.value, release: releaseSel.value, arch: archSel.value || "amd64",
+    distro: distroSel.value, release: releaseSel.value, arch: "amd64",
     packages: packages, no_recommends: norec.checked
   };
   var pkgsStr = packages.join(", "), distroV = distroSel.value, relV = releaseSel.value;

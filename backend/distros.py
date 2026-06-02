@@ -31,14 +31,12 @@ _EOL = {
     ("debian", "10"), ("debian", "9"),
 }
 
-# Allowed architectures. arm64 on an amd64 host needs Docker binfmt/qemu
-# emulation installed (see DEPLOY.md).
-ARCHES = {"amd64", "arm64"}
+# Allowed architectures (amd64 only).
+ARCHES = {"amd64"}
 
-# docker --platform matching the requested arch
+# docker --platform for each arch
 PLATFORM = {
     "amd64": "linux/amd64",
-    "arm64": "linux/arm64",
 }
 
 
@@ -58,8 +56,7 @@ def image_for(distro: str, release: str) -> str:
 # Each entry: the packages it provides; the GPG key URL; the `deb` line template
 # ({arch}/{distro} substituted in Python, $CN = codename resolved in the
 # container); the supported architectures; and explicitly blocked (distro,
-# release) combos. All are amd64-only for now (installing the repo tools hangs
-# under arm64 qemu emulation) and never offered on EOL releases.
+# release) combos. Never offered on EOL releases.
 THIRD_PARTY_REPOS = {
     "hashicorp": {
         "packages": {"packer", "terraform", "vault", "consul", "nomad",

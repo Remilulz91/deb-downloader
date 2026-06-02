@@ -227,7 +227,7 @@ deb-downloader-backend/
 The MVP validates the end-to-end flow on **one distribution, one version, one
 package**: `Ubuntu 26.04` + `nginx`, amd64, `.zip` output. Once that path works,
 we extend to **Debian 13**, then **multi-package**, then **older versions** of
-both distributions, and finally **arm64**.
+both distributions. (Scope is **amd64 only**.)
 
 Concrete steps, in order:
 
@@ -239,7 +239,7 @@ Concrete steps, in order:
    synchronous execution first, then switch to Redis/RQ.
 4. Application frontend (separate from the landing page) wired to the API.
 5. Hardening: quotas, timeouts, network isolation, purge, apt-cacher-ng.
-6. Extend to Debian 13, multi-package, older versions, arm64.
+6. Extend to Debian 13, multi-package, older versions (amd64 only).
 
 ---
 

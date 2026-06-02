@@ -5,6 +5,13 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.4.0] — 2026-06-01
+### Removed
+- **arm64 support dropped — amd64 only.** Removed the architecture selector from
+  the UI, the arm64 platform/arch entries, the arm64 emulation detection and its
+  message, and the arm64/qemu note from `DEPLOY.md`. (arm64 only ever worked
+  under flaky qemu emulation; amd64 is the supported target.)
+
 ## [v1.3.2] — 2026-06-01
 ### Fixed
 - Job archives are now purged by a **background thread every 5 minutes** (not
@@ -368,6 +375,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.4.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.0
 [v1.3.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.2
 [v1.3.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.1
 [v1.3.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.0
