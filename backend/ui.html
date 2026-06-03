@@ -35,6 +35,33 @@
   .check{display:flex;align-items:center;gap:9px;margin-top:16px;color:var(--text-dim);font-weight:400}
   .check input{width:auto}
   .hint{color:var(--text-dim);font-size:.85rem;margin-top:5px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 11px;border-radius:999px;
+        background:var(--bg-soft);border:1px solid var(--border);font-size:.9rem}
+  .chip-name{font-weight:600}
+  .chip-ver{width:128px;padding:3px 7px;border-radius:7px;border:1px solid var(--border);
+            background:var(--bg);color:var(--text);font-size:.8rem}
+  .chip-x{cursor:pointer;border:none;background:transparent;color:var(--text-dim);font-size:1.15rem;
+          line-height:1;padding:0 5px;border-radius:6px}
+  .chip-x:hover{color:var(--accent)}
+  .chips-empty{color:var(--text-dim);font-size:.85rem;margin-bottom:10px}
+  .addrow{display:flex;gap:8px}
+  .addrow input{flex:1}
+  .addbtn{flex:0 0 auto;width:46px;border:1px solid var(--border);border-radius:10px;cursor:pointer;
+          background:var(--bg-soft);color:var(--text);font-size:1.3rem;font-weight:700;line-height:1}
+  .addbtn:hover{border-color:var(--accent)}
+  .quick{margin-top:18px}
+  .quick-title{font-weight:600;margin-bottom:8px}
+  .catalog{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:10px;
+           padding:12px;background:rgba(0,0,0,.12)}
+  .cat-group{margin-bottom:13px}
+  .cat-group:last-child{margin-bottom:0}
+  .cat-title{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);margin-bottom:7px}
+  .pills{display:flex;flex-wrap:wrap;gap:7px}
+  .pill{cursor:pointer;padding:5px 11px;border-radius:999px;border:1px solid var(--border);
+        background:var(--bg-soft);color:var(--text);font-size:.86rem;transition:background .12s,border-color .12s,color .12s}
+  .pill:hover{border-color:var(--accent-2)}
+  .pill.on{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff}
   button.go{margin-top:22px;width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;
     font-size:1.05rem;font-weight:700;color:#fff;
     background:linear-gradient(135deg,var(--accent),var(--accent-2));
@@ -85,9 +112,19 @@
       </div>
     </div>
 
-    <label id="lbl-packages" for="packages"></label>
-    <input type="text" id="packages" />
+    <label id="lbl-packages"></label>
+    <div id="chips" class="chips"></div>
+    <div class="addrow">
+      <input type="text" id="pkgadd" />
+      <button type="button" id="pkgaddbtn" class="addbtn">+</button>
+    </div>
     <div class="hint" id="hint"></div>
+
+    <div class="quick">
+      <div class="quick-title" id="lbl-quick"></div>
+      <div id="catalog" class="catalog"></div>
+      <div class="hint" id="quicknote"></div>
+    </div>
 
     <label class="check"><input type="checkbox" id="norec" /> <span id="lbl-norec"></span> (<code>--no-install-recommends</code>)</label>
 
@@ -105,7 +142,18 @@ var I18N = {
     sub: "Pick a distribution, type one or more packages, and download a <b>.zip</b> containing the packages plus all their dependencies (offline-ready).",
     distro: "Distribution", release: "Version", packages: "Package(s)",
     placeholder: "e.g. nginx  (space or comma separated)",
-    hint: "Lowercase names. Pin a version with name=version (e.g. gitlab-ce=17.5.0-ce.0).",
+    addPh: "Add a package…  (name, or name=version)",
+    noneSel: "No package selected yet — pick from the list below or type one.",
+    verPh: "version (optional)",
+    remove: "Remove",
+    quick: "Quick pick — common packages",
+    quicknote: "Click a package to add it. Docker, GitLab, Wazuh and HashiCorp come from third-party repos (amd64, not on EOL releases).",
+    tpTag: "third-party",
+    catWeb: "Web servers", catDb: "Databases", catLang: "Languages & runtimes",
+    catBuild: "Build & dev tools", catSys: "System & utilities",
+    catDocker: "Containers (Docker)", catHashicorp: "HashiCorp",
+    catSecurity: "Security & monitoring", catGitlab: "GitLab",
+    hint: "Type a name and press Enter, or pick below. Pin a version per package in its version box.",
     norec: "Exclude recommended packages",
     go: "⬇️ Fetch & download .zip",
     home: "← Home",
@@ -136,7 +184,18 @@ var I18N = {
     sub: "Choisissez une distribution, tapez un ou plusieurs paquets, et téléchargez un <b>.zip</b> contenant les paquets et toutes leurs dépendances (prêt hors-ligne).",
     distro: "Distribution", release: "Version", packages: "Paquet(s)",
     placeholder: "ex. nginx  (séparés par espace ou virgule)",
-    hint: "Noms en minuscules. Épinglez une version avec nom=version (ex. gitlab-ce=17.5.0-ce.0).",
+    addPh: "Ajouter un paquet…  (nom, ou nom=version)",
+    noneSel: "Aucun paquet sélectionné — choisissez ci-dessous ou saisissez-en un.",
+    verPh: "version (option.)",
+    remove: "Retirer",
+    quick: "Sélection rapide — paquets courants",
+    quicknote: "Cliquez un paquet pour l'ajouter. Docker, GitLab, Wazuh et HashiCorp proviennent de dépôts tiers (amd64, hors EOL).",
+    tpTag: "tiers",
+    catWeb: "Serveurs web", catDb: "Bases de données", catLang: "Langages & runtimes",
+    catBuild: "Outils de build & dev", catSys: "Système & utilitaires",
+    catDocker: "Conteneurs (Docker)", catHashicorp: "HashiCorp",
+    catSecurity: "Sécurité & supervision", catGitlab: "GitLab",
+    hint: "Tapez un nom et Entrée, ou choisissez ci-dessous. Épinglez une version par paquet dans son champ version.",
     norec: "Exclure les paquets recommandés",
     go: "⬇️ Récupérer & télécharger le .zip",
     home: "← Accueil",
@@ -193,13 +252,164 @@ function localizeError(d){
 
 var distroSel = document.getElementById("distro");
 var releaseSel = document.getElementById("release");
-var pkgInput = document.getElementById("packages");
+var addInput = document.getElementById("pkgadd");
+var chipsEl = document.getElementById("chips");
+var catalogEl = document.getElementById("catalog");
 var norec = document.getElementById("norec");
 var goBtn = document.getElementById("go");
 var statusEl = document.getElementById("status");
 var serverInfoEl = document.getElementById("serverinfo");
 var MAP = {};
 var serverStatus = null;
+
+// --- Package selection (chips + curated quick-pick) ----------------------
+// selected: package name -> pinned version string ("" = latest available).
+var selected = {};
+
+// Curated list of common packages, grouped. Package names are universal; only
+// the group titles and short tooltips are translated. Some entries come from
+// third-party repos (Docker/GitLab/Wazuh/HashiCorp): amd64 only, not on EOL.
+var CATALOG = [
+  {key:"catWeb", items:[
+    {n:"nginx",    en:"Web server / reverse proxy", fr:"Serveur web / reverse proxy"},
+    {n:"apache2",  en:"Apache HTTP server",         fr:"Serveur HTTP Apache"},
+    {n:"lighttpd", en:"Lightweight web server",     fr:"Serveur web léger"},
+    {n:"haproxy",  en:"Load balancer / proxy",      fr:"Répartiteur de charge / proxy"}
+  ]},
+  {key:"catDb", items:[
+    {n:"mariadb-server", en:"MariaDB database",    fr:"Base de données MariaDB"},
+    {n:"postgresql",     en:"PostgreSQL database", fr:"Base de données PostgreSQL"},
+    {n:"redis-server",   en:"Redis store",         fr:"Stockage Redis"},
+    {n:"sqlite3",        en:"SQLite CLI",          fr:"SQLite (ligne de commande)"}
+  ]},
+  {key:"catLang", items:[
+    {n:"python3",     en:"Python 3",               fr:"Python 3"},
+    {n:"python3-pip", en:"Python package manager", fr:"Gestionnaire de paquets Python"},
+    {n:"nodejs",      en:"Node.js runtime",        fr:"Runtime Node.js"},
+    {n:"npm",         en:"Node package manager",   fr:"Gestionnaire de paquets Node"},
+    {n:"default-jdk", en:"Java JDK",               fr:"JDK Java"},
+    {n:"golang",      en:"Go toolchain",           fr:"Chaîne d'outils Go"},
+    {n:"php",         en:"PHP",                     fr:"PHP"},
+    {n:"ruby",        en:"Ruby",                    fr:"Ruby"}
+  ]},
+  {key:"catBuild", items:[
+    {n:"build-essential", en:"Compilers (gcc, make…)", fr:"Compilateurs (gcc, make…)"},
+    {n:"git",        en:"Version control", fr:"Gestion de versions"},
+    {n:"cmake",      en:"Build system",    fr:"Système de build"},
+    {n:"pkg-config", en:"Build helper",    fr:"Aide à la compilation"}
+  ]},
+  {key:"catSys", items:[
+    {n:"curl",           en:"HTTP client",         fr:"Client HTTP"},
+    {n:"wget",           en:"Downloader",          fr:"Téléchargeur"},
+    {n:"vim",            en:"Text editor",         fr:"Éditeur de texte"},
+    {n:"htop",           en:"Process viewer",      fr:"Moniteur de processus"},
+    {n:"tmux",           en:"Terminal multiplexer",fr:"Multiplexeur de terminal"},
+    {n:"openssh-server", en:"SSH server",          fr:"Serveur SSH"},
+    {n:"rsync",          en:"File sync",           fr:"Synchronisation de fichiers"},
+    {n:"unzip",          en:"Unzip archives",      fr:"Décompression zip"},
+    {n:"ca-certificates",en:"TLS root certs",      fr:"Certificats racine TLS"}
+  ]},
+  {key:"catDocker", tp:true, items:[
+    {n:"docker-ce",             en:"Docker Engine",     fr:"Moteur Docker"},
+    {n:"docker-ce-cli",         en:"Docker CLI",        fr:"Client Docker"},
+    {n:"containerd.io",         en:"Container runtime", fr:"Runtime de conteneurs"},
+    {n:"docker-compose-plugin", en:"Compose plugin",    fr:"Plugin Compose"},
+    {n:"docker-buildx-plugin",  en:"Buildx plugin",     fr:"Plugin Buildx"}
+  ]},
+  {key:"catHashicorp", tp:true, items:[
+    {n:"packer",    en:"Image builder",   fr:"Constructeur d'images"},
+    {n:"terraform", en:"Infra as code",   fr:"Infra as code"},
+    {n:"vault",     en:"Secrets manager", fr:"Gestion de secrets"},
+    {n:"consul",    en:"Service mesh",    fr:"Service mesh"},
+    {n:"nomad",     en:"Orchestrator",    fr:"Orchestrateur"}
+  ]},
+  {key:"catSecurity", items:[
+    {n:"wazuh-agent", en:"Wazuh agent (third-party)", fr:"Agent Wazuh (tiers)"},
+    {n:"fail2ban",    en:"Intrusion prevention",      fr:"Prévention d'intrusion"},
+    {n:"ufw",         en:"Firewall front-end",        fr:"Pare-feu simplifié"},
+    {n:"clamav",      en:"Antivirus",                 fr:"Antivirus"}
+  ]},
+  {key:"catGitlab", tp:true, items:[
+    {n:"gitlab-ce", en:"GitLab CE (large, ~1 GB+)", fr:"GitLab CE (volumineux, ~1 Go+)"}
+  ]}
+];
+
+function addPackage(raw){
+  raw = (raw || "").trim();
+  if(!raw) return;
+  // Support several names at once (space/comma) and an optional =version each.
+  raw.split(/[\s,]+/).filter(Boolean).forEach(function(tok){
+    var name = tok, ver = "";
+    var eq = tok.indexOf("=");
+    if(eq > 0){ name = tok.slice(0, eq).trim(); ver = tok.slice(eq+1).trim(); }
+    if(!name) return;
+    if(!(name in selected) || ver) selected[name] = ver;
+  });
+  renderChips(); syncCatalog();
+}
+
+function removePackage(name){ delete selected[name]; renderChips(); syncCatalog(); }
+
+function renderChips(){
+  chipsEl.innerHTML = "";
+  var names = Object.keys(selected);
+  if(names.length === 0){
+    var e = document.createElement("div");
+    e.className = "chips-empty"; e.textContent = t("noneSel");
+    chipsEl.appendChild(e); return;
+  }
+  names.forEach(function(name){
+    var chip = document.createElement("span"); chip.className = "chip";
+    var nm = document.createElement("span"); nm.className = "chip-name"; nm.textContent = name;
+    var ver = document.createElement("input"); ver.type = "text"; ver.className = "chip-ver";
+    ver.value = selected[name] || ""; ver.setAttribute("placeholder", t("verPh"));
+    ver.addEventListener("input", function(){ selected[name] = ver.value.trim(); });
+    var x = document.createElement("button"); x.type = "button"; x.className = "chip-x";
+    x.textContent = "×"; x.title = t("remove");
+    x.addEventListener("click", function(){ removePackage(name); });
+    chip.appendChild(nm); chip.appendChild(ver); chip.appendChild(x);
+    chipsEl.appendChild(chip);
+  });
+}
+
+function renderCatalog(){
+  catalogEl.innerHTML = "";
+  CATALOG.forEach(function(group){
+    var g = document.createElement("div"); g.className = "cat-group";
+    var title = document.createElement("div"); title.className = "cat-title";
+    title.textContent = t(group.key) + (group.tp ? " · " + t("tpTag") : "");
+    g.appendChild(title);
+    var pills = document.createElement("div"); pills.className = "pills";
+    group.items.forEach(function(it){
+      var p = document.createElement("button"); p.type = "button";
+      p.className = "pill" + ((it.n in selected) ? " on" : "");
+      p.textContent = it.n; p.title = (lang === "fr" ? it.fr : it.en) || "";
+      p.setAttribute("data-name", it.n);
+      p.addEventListener("click", function(){
+        if(it.n in selected) removePackage(it.n); else addPackage(it.n);
+      });
+      pills.appendChild(p);
+    });
+    g.appendChild(pills); catalogEl.appendChild(g);
+  });
+}
+
+// Reflect the current selection on the catalog pills (cheap, no full re-render).
+function syncCatalog(){
+  var pills = catalogEl.querySelectorAll(".pill");
+  for(var i=0;i<pills.length;i++){
+    var n = pills[i].getAttribute("data-name");
+    pills[i].classList.toggle("on", n in selected);
+  }
+}
+
+addInput.addEventListener("keydown", function(e){
+  if(e.key === "Enter" || e.key === ","){ e.preventDefault(); addPackage(addInput.value); addInput.value = ""; }
+});
+document.getElementById("pkgaddbtn").addEventListener("click", function(){
+  addPackage(addInput.value); addInput.value = ""; addInput.focus();
+});
+renderCatalog(); renderChips();
 
 function renderServerInfo(){
   if(!serverStatus || serverStatus.disk_free == null){ serverInfoEl.textContent = ""; return; }
@@ -222,11 +432,14 @@ function applyLang(){
   document.getElementById("lbl-release").textContent = t("release");
   document.getElementById("lbl-packages").textContent = t("packages");
   document.getElementById("hint").textContent = t("hint");
+  document.getElementById("lbl-quick").textContent = t("quick");
+  document.getElementById("quicknote").textContent = t("quicknote");
   document.getElementById("lbl-norec").textContent = t("norec");
   document.getElementById("footer").innerHTML = t("footer");
   document.getElementById("homelink").textContent = t("home");
   goBtn.textContent = t("go");
-  pkgInput.setAttribute("placeholder", t("placeholder"));
+  addInput.setAttribute("placeholder", t("addPh"));
+  renderChips(); renderCatalog();
   var btns = document.querySelectorAll(".lang button");
   for (var i=0;i<btns.length;i++){ btns[i].classList.toggle("active", btns[i].getAttribute("data-lang")===lang); }
   if (lastStatus){ statusEl.innerHTML = lastStatus.fn(); }   // re-render the status in the new language
@@ -329,7 +542,12 @@ function pollJob(jobId, pkgsStr, distroV, relV){
 }
 
 goBtn.addEventListener("click", function(){
-  var packages = pkgInput.value.split(/[\s,]+/).filter(Boolean);
+  // Flush anything still typed in the add box, then build from the selection.
+  if(addInput.value.trim()){ addPackage(addInput.value); addInput.value = ""; }
+  var packages = Object.keys(selected).map(function(n){
+    var v = (selected[n] || "").trim();
+    return v ? (n + "=" + v) : n;
+  });
   if(packages.length === 0){ showStatus("err", function(){ return t("noPkg"); }); return; }
 
   var body = {

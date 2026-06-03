@@ -5,6 +5,19 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.5.0] — 2026-06-03
+### Added
+- **Quick-pick package selection.** The app interface now offers a curated list
+  of common packages (web servers, databases, languages, build/dev tools, system
+  utilities, plus the third-party Docker/HashiCorp/Wazuh/GitLab entries), grouped
+  by category as clickable pills — no need to remember exact names.
+### Changed
+- **Selected packages are shown as readable "chips"** instead of one long text
+  field. Each chip has its own optional **version box**, so pinning versions
+  (e.g. `gitlab-ce` → `18.10.0-ce.0`) no longer turns the input into an
+  unreadable string. Free typing is kept (name or `name=version`, Enter/comma to
+  add) for anything not in the list. Fully bilingual (FR/EN).
+
 ## [v1.4.1] — 2026-06-02
 ### Fixed
 - **Failures are no longer silent.** When a job fails (including a timeout), the
@@ -385,6 +398,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.5.0
 [v1.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.1
 [v1.4.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.0
 [v1.3.2]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.3.2
