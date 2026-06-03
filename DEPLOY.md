@@ -16,6 +16,29 @@ is included.
 
 ---
 
+# Automated install (script)
+
+If you'd rather not copy-paste every step, the repository ships an interactive
+installer that does **everything in this guide** for you. It asks for each value
+it needs (press Enter to accept the default) and asks **y/n** before every
+optional step (custom jobs directory, per-job size limit, UFW, fail2ban). HTTP
+only — no TLS.
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+sudo git clone https://github.com/Remilulz91/deb-downloader.git /var/www/deb-downloader
+sudo bash /var/www/deb-downloader/deploy/install.sh
+```
+
+When it finishes, it prints the URL to open — typically **`http://localhost/app`**
+(or `http://<machine-ip>/app` from another device on the LAN). That's it.
+
+> The script is just an automation of the manual steps below; if anything fails
+> or you want to understand each piece, follow the manual walkthrough. Re-running
+> the script is safe — it updates an existing install rather than duplicating it.
+
+---
+
 # Part 1 — The website
 
 ## 0. What you will get

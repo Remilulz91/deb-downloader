@@ -5,6 +5,19 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.6.0] — 2026-06-03
+### Added
+- **Interactive installer (`deploy/install.sh`).** A single script that
+  reproduces the whole `DEPLOY.md` over plain HTTP: Docker, the project, the
+  nginx website, and the engine/API as a systemd service. It pauses to ask for
+  each required value (user, install directory, web port — Enter accepts the
+  default) and asks **y/n** before every optional step (custom jobs directory,
+  per-job size limit, localhost-only website, UFW firewall, fail2ban for SSH
+  and/or nginx), writing each answer into the right file automatically. It ends
+  by printing the URL to open (e.g. `http://<ip>/app`). Re-running it updates an
+  existing install rather than duplicating it. Documented at the top of
+  `DEPLOY.md`.
+
 ## [v1.5.0] — 2026-06-03
 ### Added
 - **Quick-pick package selection.** The app interface now offers a curated list
@@ -398,6 +411,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.6.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.6.0
 [v1.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.5.0
 [v1.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.1
 [v1.4.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.0
