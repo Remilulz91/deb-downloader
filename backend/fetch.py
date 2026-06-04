@@ -79,6 +79,19 @@ def validate(distro, release, arch, packages):
     return image
 
 
+def validate_update(distro, release, arch):
+    """Validate the input of a system-update job (no package list)."""
+    try:
+        image = distros.image_for(distro, release)
+    except ValueError:
+        raise FetchError("unsupported_distro",
+                         f"Unsupported distribution: {distro} {release}.",
+                         distro=distro, release=release)
+    if arch not in distros.ARCHES:
+        raise FetchError("bad_arch", f"Unsupported architecture: {arch}.", arch=arch)
+    return image
+
+
 def container_script(packages, no_recommends=False, fixup="", apt_extra="", repo=None):
     """Script run INSIDE the disposable container.
 
@@ -134,6 +147,35 @@ def container_script(packages, no_recommends=False, fixup="", apt_extra="", repo
     )
 
 
+def container_script_update(fixup="", apt_extra=""):
+    """Script run INSIDE the container for a SYSTEM UPDATE job.
+
+    The target machine's dpkg status file (uploaded by the user, staged by the
+    host at /out/.status) replaces the container's own: apt then sees exactly
+    the target machine's installed set, so `dist-upgrade --print-uris` yields
+    precisely the .deb that machine needs to reach the current point release
+    (kernel and security fixes included). Same pipeline as a package fetch:
+    count/size first, optional quota gate, then download into /out/debs.
+    """
+    apt = "apt-get -o APT::Sandbox::User=root" + apt_extra
+    return (
+        "set -e; export DEBIAN_FRONTEND=noninteractive; "
+        + "cp /out/.status /var/lib/dpkg/status; "
+        + fixup
+        + f"{apt} update -qq; mkdir -p /out/debs/partial; "
+        + f"{apt} dist-upgrade -y --print-uris 2>/dev/null > /out/.uris_raw || true; "
+        + "grep -oE \"https?://[^ ']+\\.deb\" /out/.uris_raw | sort -u > /out/.urls; "
+        + "wc -l < /out/.urls > /out/.total; "
+        + "awk '$2 ~ /\\.deb$/ {s+=$3} END{print s+0}' /out/.uris_raw > /out/.size; "
+        + "MAX=\"${DDL_MAX_BYTES:-0}\"; SIZE=\"$(cat /out/.size)\"; "
+        + "if [ \"$MAX\" -gt 0 ] && [ \"$SIZE\" -gt \"$MAX\" ]; then "
+        + "echo \"DDL_TOO_LARGE size=$SIZE max=$MAX\"; exit 7; fi; "
+        + f"{apt} -o Dir::Cache::archives=/out/debs dist-upgrade -y --download-only; "
+        + "rm -rf /out/debs/partial /out/debs/lock 2>/dev/null || true; "
+        + "ls -1 /out/debs/*.deb 2>/dev/null | wc -l > /out/.count"
+    )
+
+
 def docker_command(image, arch, out_host, script, limits, name=None, max_bytes=0):
     """Build the `docker run` command (argument list)."""
     platform = distros.PLATFORM.get(arch, "linux/amd64")
@@ -160,31 +202,46 @@ def docker_command(image, arch, out_host, script, limits, name=None, max_bytes=0
 
 
 def run(distro, release, arch, packages, out_dir=None,
-        no_recommends=False, limits=None, dry_run=False, progress_cb=None, max_bytes=0):
-    """Fetch packages and build the .zip.
+        no_recommends=False, limits=None, dry_run=False, progress_cb=None,
+        max_bytes=0, status_path=None):
+    """Fetch packages (or a full system update) and build the .zip.
 
     progress_cb(done, total) is called ~once per second while downloading, where
     `done` is the number of .deb already written and `total` the expected count
     (or None until it is known). max_bytes>0 rejects sets larger than that
     (computed before downloading).
+
+    If status_path is given (a dpkg status file uploaded from the target
+    machine), the job is a SYSTEM UPDATE: packages is ignored and the engine
+    downloads exactly the updates that machine needs within its release.
     """
     limits = {**DEFAULTS, **(limits or {})}
-    image = validate(distro, release, arch, packages)
+    update_mode = status_path is not None
+    if update_mode:
+        image = validate_update(distro, release, arch)
+    else:
+        image = validate(distro, release, arch, packages)
 
     out_dir = Path(out_dir) if out_dir else Path(tempfile.mkdtemp(prefix="ddl_"))
     debs_dir = out_dir / "debs"
     debs_dir.mkdir(parents=True, exist_ok=True)
 
     container = "ddl_" + uuid.uuid4().hex[:12]
-    rid = distros.repo_for_packages(packages)
-    repo = None
-    if rid:
-        key_url, deb_line = distros.repo_setup(rid, distro, release, arch)
-        repo = (rid, key_url, deb_line)
-    script = container_script(packages, no_recommends,
-                             fixup=distros.sources_fixup(distro, release),
-                             apt_extra=distros.apt_opts(distro, release),
-                             repo=repo)
+    if update_mode:
+        shutil.copyfile(status_path, out_dir / ".status")
+        script = container_script_update(
+            fixup=distros.sources_fixup(distro, release),
+            apt_extra=distros.apt_opts(distro, release))
+    else:
+        rid = distros.repo_for_packages(packages)
+        repo = None
+        if rid:
+            key_url, deb_line = distros.repo_setup(rid, distro, release, arch)
+            repo = (rid, key_url, deb_line)
+        script = container_script(packages, no_recommends,
+                                 fixup=distros.sources_fixup(distro, release),
+                                 apt_extra=distros.apt_opts(distro, release),
+                                 repo=repo)
     cmd = docker_command(image, arch, str(out_dir.resolve()), script, limits,
                          name=container, max_bytes=max_bytes)
 
@@ -198,7 +255,8 @@ def run(distro, release, arch, packages, out_dir=None,
     if shutil.which("docker") is None:
         raise FetchError("docker_missing", "Docker not found on the host.")
 
-    print(f"[*] Fetching {packages} for {distro} {release} ({arch})...")
+    label = "system update" if update_mode else str(packages)
+    print(f"[*] Fetching {label} for {distro} {release} ({arch})...")
     log_path = out_dir / ".log"
     total_path = out_dir / ".total"
     deadline = time.time() + limits["timeout"]
@@ -287,12 +345,19 @@ def run(distro, release, arch, packages, out_dir=None,
     if progress_cb:
         progress_cb(count_debs(), total)
 
-    # Build a clean archive name: join packages and replace any character that's
-    # awkward in a filename (e.g. '=' from name=version, ':' from epochs) with '-'.
-    safe_pkg = re.sub(r"[^A-Za-z0-9.+]+", "-", "-".join(packages)).strip("-")
-    zip_name = f"{safe_pkg}_{distro}-{release}_{arch}.zip"
+    # A system update with nothing to download = the machine is already current.
+    if update_mode and count_debs() == 0:
+        raise FetchError("up_to_date", "The system is already up to date.")
+
+    if update_mode:
+        zip_name = f"system-update_{distro}-{release}_{arch}.zip"
+    else:
+        # Clean archive name: join packages and replace any character that's
+        # awkward in a filename (e.g. '=' from name=version, ':' from epochs).
+        safe_pkg = re.sub(r"[^A-Za-z0-9.+]+", "-", "-".join(packages)).strip("-")
+        zip_name = f"{safe_pkg}_{distro}-{release}_{arch}.zip"
     zip_path = out_dir.parent / zip_name
-    build_repo.build(out_dir, distro, release, packages, zip_path)
+    build_repo.build(out_dir, distro, release, packages, zip_path, update=update_mode)
     print(f"[OK] Archive ready: {zip_path}")
     return zip_path
 

@@ -3,6 +3,7 @@
 #   uvicorn app:app --host 0.0.0.0 --port 8000
 fastapi>=0.110
 uvicorn[standard]>=0.29
+python-multipart>=0.0.9     # multipart upload (system-update jobs)
 
 # The standalone CLI (fetch.py / build_repo.py) needs no pip dependencies.
 #

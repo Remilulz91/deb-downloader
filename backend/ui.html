@@ -62,6 +62,14 @@
         background:var(--bg-soft);color:var(--text);font-size:.86rem;transition:background .12s,border-color .12s,color .12s}
   .pill:hover{border-color:var(--accent-2)}
   .pill.on{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff}
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tab{flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;
+       background:var(--bg-soft);color:var(--text-dim);font-weight:700;font-size:.95rem;
+       transition:background .15s,color .15s,border-color .15s}
+  .tab:hover{border-color:var(--accent-2)}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent}
+  input[type=file]{width:100%;padding:9px 11px;border-radius:10px;border:1px dashed var(--border);
+                   background:var(--bg-soft);color:var(--text-dim);font-size:.9rem}
   button.go{margin-top:22px;width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;
     font-size:1.05rem;font-weight:700;color:#fff;
     background:linear-gradient(135deg,var(--accent),var(--accent-2));
@@ -101,6 +109,11 @@
   <p class="sub" id="sub"></p>
 
   <div class="card">
+    <div class="tabs">
+      <button type="button" class="tab active" id="tab-pkgs"></button>
+      <button type="button" class="tab" id="tab-update"></button>
+    </div>
+
     <div class="row">
       <div>
         <label class="lbl-first" id="lbl-distro" for="distro"></label>
@@ -112,21 +125,30 @@
       </div>
     </div>
 
-    <label id="lbl-packages"></label>
-    <div id="chips" class="chips"></div>
-    <div class="addrow">
-      <input type="text" id="pkgadd" />
-      <button type="button" id="pkgaddbtn" class="addbtn">+</button>
-    </div>
-    <div class="hint" id="hint"></div>
+    <div id="mode-pkgs">
+      <label id="lbl-packages"></label>
+      <div id="chips" class="chips"></div>
+      <div class="addrow">
+        <input type="text" id="pkgadd" />
+        <button type="button" id="pkgaddbtn" class="addbtn">+</button>
+      </div>
+      <div class="hint" id="hint"></div>
 
-    <div class="quick">
-      <div class="quick-title" id="lbl-quick"></div>
-      <div id="catalog" class="catalog"></div>
-      <div class="hint" id="quicknote"></div>
+      <div class="quick">
+        <div class="quick-title" id="lbl-quick"></div>
+        <div id="catalog" class="catalog"></div>
+        <div class="hint" id="quicknote"></div>
+      </div>
     </div>
 
-    <label class="check"><input type="checkbox" id="norec" /> <span id="lbl-norec"></span> (<code>--no-install-recommends</code>)</label>
+    <div id="mode-update" style="display:none">
+      <p class="hint" id="upd-intro" style="margin-top:14px"></p>
+      <label id="lbl-updfile" for="updfile"></label>
+      <input type="file" id="updfile" />
+      <div class="hint" id="upd-hint"></div>
+    </div>
+
+    <label class="check" id="norec-row"><input type="checkbox" id="norec" /> <span id="lbl-norec"></span> (<code>--no-install-recommends</code>)</label>
 
     <button class="go" id="go"></button>
     <div id="status" class="status"></div>
@@ -154,6 +176,16 @@ var I18N = {
     catDocker: "Containers (Docker)", catHashicorp: "HashiCorp",
     catSecurity: "Security & monitoring", catGitlab: "GitLab",
     hint: "Type a name and press Enter, or pick below. Pin a version per package in its version box.",
+    tabPkgs: "📦 Packages",
+    tabUpdate: "🔄 System update",
+    goUpdate: "⬇️ Build & download the update .zip",
+    updIntro: "Bring an OFFLINE machine fully up to date within its release (e.g. Debian 13.0 → 13.1, kernel and security fixes included): upload that machine's dpkg status file and you'll get a .zip with exactly the updates it needs.",
+    updFile: "dpkg status file of the target machine",
+    updHint: "On the offline machine, copy the file /var/lib/dpkg/status (e.g. onto a USB stick), then select it here. One machine = one file = one job. Instructions to apply the update are included in the .zip (INSTALL.txt).",
+    updNoFile: "Please select the dpkg status file first.",
+    upToDate: "✅ This machine is already up to date — nothing to download.",
+    errBadStatus: "This doesn't look like a dpkg status file (expected: /var/lib/dpkg/status from the target machine).",
+    errStatusTooLarge: "The uploaded file is too large.",
     norec: "Exclude recommended packages",
     go: "⬇️ Fetch & download .zip",
     home: "← Home",
@@ -196,6 +228,16 @@ var I18N = {
     catDocker: "Conteneurs (Docker)", catHashicorp: "HashiCorp",
     catSecurity: "Sécurité & supervision", catGitlab: "GitLab",
     hint: "Tapez un nom et Entrée, ou choisissez ci-dessous. Épinglez une version par paquet dans son champ version.",
+    tabPkgs: "📦 Paquets",
+    tabUpdate: "🔄 Mise à jour système",
+    goUpdate: "⬇️ Générer & télécharger le .zip de mise à jour",
+    updIntro: "Mettez à jour une machine HORS-LIGNE au sein de sa version (ex. Debian 13.0 → 13.1, noyau et correctifs de sécurité compris) : envoyez le fichier dpkg status de cette machine et vous obtenez un .zip contenant exactement les mises à jour dont elle a besoin.",
+    updFile: "Fichier dpkg status de la machine cible",
+    updHint: "Sur la machine hors-ligne, copiez le fichier /var/lib/dpkg/status (ex. sur une clé USB), puis sélectionnez-le ici. Une machine = un fichier = un job. Les instructions pour appliquer la mise à jour sont incluses dans le .zip (INSTALL.txt).",
+    updNoFile: "Veuillez d'abord sélectionner le fichier dpkg status.",
+    upToDate: "✅ Cette machine est déjà à jour — rien à télécharger.",
+    errBadStatus: "Ce fichier ne ressemble pas à un dpkg status (attendu : /var/lib/dpkg/status de la machine cible).",
+    errStatusTooLarge: "Le fichier envoyé est trop volumineux.",
     norec: "Exclure les paquets recommandés",
     go: "⬇️ Récupérer & télécharger le .zip",
     home: "← Accueil",
@@ -241,6 +283,8 @@ function localizeError(d){
     case "too_large":          return t("errTooLarge").replace("{size}", formatSize(d.size)).replace("{max}", formatSize(d.max));
     case "repo_unavailable":   return t("errRepo").replace("{pkgs}", (d.packages||[]).join(", ")).replace("{repo}", d.repo||"").replace("{distro}", d.distro||"").replace("{release}", d.release||"").replace("{arch}", d.arch||"");
     case "version_not_found":  return t("errVersion").replace("{version}", d.version||"").replace("{package}", d.package||"");
+    case "bad_status_file":    return t("errBadStatus");
+    case "status_too_large":   return t("errStatusTooLarge");
     case "timeout": {
       var m = t("errTimeout");
       if(d.log_tail) m += "<pre class='logtail'>" + esc(d.log_tail) + "</pre>";
@@ -411,6 +455,22 @@ document.getElementById("pkgaddbtn").addEventListener("click", function(){
 });
 renderCatalog(); renderChips();
 
+// --- Mode: package fetch vs full system update ---------------------------
+var mode = "pkgs";
+var updFile = document.getElementById("updfile");
+
+function setMode(m){
+  mode = m;
+  document.getElementById("tab-pkgs").classList.toggle("active", m === "pkgs");
+  document.getElementById("tab-update").classList.toggle("active", m === "update");
+  document.getElementById("mode-pkgs").style.display = (m === "pkgs") ? "" : "none";
+  document.getElementById("mode-update").style.display = (m === "update") ? "" : "none";
+  document.getElementById("norec-row").style.display = (m === "pkgs") ? "" : "none";
+  goBtn.textContent = (m === "update") ? t("goUpdate") : t("go");
+}
+document.getElementById("tab-pkgs").addEventListener("click", function(){ setMode("pkgs"); });
+document.getElementById("tab-update").addEventListener("click", function(){ setMode("update"); });
+
 function renderServerInfo(){
   if(!serverStatus || serverStatus.disk_free == null){ serverInfoEl.textContent = ""; return; }
   var txt = t("srvDisk").replace("{free}", formatSize(serverStatus.disk_free));
@@ -437,7 +497,12 @@ function applyLang(){
   document.getElementById("lbl-norec").textContent = t("norec");
   document.getElementById("footer").innerHTML = t("footer");
   document.getElementById("homelink").textContent = t("home");
-  goBtn.textContent = t("go");
+  document.getElementById("tab-pkgs").textContent = t("tabPkgs");
+  document.getElementById("tab-update").textContent = t("tabUpdate");
+  document.getElementById("upd-intro").textContent = t("updIntro");
+  document.getElementById("lbl-updfile").textContent = t("updFile");
+  document.getElementById("upd-hint").textContent = t("updHint");
+  goBtn.textContent = (mode === "update") ? t("goUpdate") : t("go");
   addInput.setAttribute("placeholder", t("addPh"));
   renderChips(); renderCatalog();
   var btns = document.querySelectorAll(".lang button");
@@ -534,14 +599,53 @@ function pollJob(jobId, pkgsStr, distroV, relV){
         });
         goBtn.disabled = false;
       } else { // error
-        showError(j.error, null);
+        if (j.error && j.error.code === "up_to_date"){
+          showStatus("ok", function(){ return t("upToDate"); });
+        } else {
+          showError(j.error, null);
+        }
         goBtn.disabled = false;
       }
     })
     .catch(function(err){ showError(null, err.message); goBtn.disabled = false; });
 }
 
+// Shared submit pipeline: POST, surface API errors, then start polling.
+function submitJob(reqPromise, pkgsStr){
+  var distroV = distroSel.value, relV = releaseSel.value;
+  goBtn.disabled = true;
+  showStatus("work", function(){ return t("queued"); });
+  reqPromise
+  .then(function(res){
+    return res.json().then(function(j){
+      if(!res.ok){
+        var d = j && j.detail;
+        var e = new Error((d && d.code) ? localizeError(d) : (typeof d === "string" ? d : t("errFetch")));
+        if (d && d.code) e.apiDetail = d;
+        throw e;
+      }
+      return j;
+    }, function(){ throw new Error("HTTP " + res.status); });
+  })
+  .then(function(j){ pollJob(j.job_id, pkgsStr, distroV, relV); })
+  .catch(function(err){
+    showError(err.apiDetail, err.message);
+    goBtn.disabled = false;
+  });
+}
+
 goBtn.addEventListener("click", function(){
+  if(mode === "update"){
+    var f = updFile.files && updFile.files[0];
+    if(!f){ showStatus("err", function(){ return t("updNoFile"); }); return; }
+    var fd = new FormData();
+    fd.append("distro", distroSel.value);
+    fd.append("release", releaseSel.value);
+    fd.append("status", f);
+    submitJob(fetch("api/jobs/update", {method: "POST", body: fd}), t("tabUpdate"));
+    return;
+  }
+
   // Flush anything still typed in the add box, then build from the selection.
   if(addInput.value.trim()){ addPackage(addInput.value); addInput.value = ""; }
   var packages = Object.keys(selected).map(function(n){
@@ -554,32 +658,9 @@ goBtn.addEventListener("click", function(){
     distro: distroSel.value, release: releaseSel.value, arch: "amd64",
     packages: packages, no_recommends: norec.checked
   };
-  var pkgsStr = packages.join(", "), distroV = distroSel.value, relV = releaseSel.value;
-
-  goBtn.disabled = true;
-  showStatus("work", function(){ return t("queued"); });
-
-  fetch("api/jobs", {
+  submitJob(fetch("api/jobs", {
     method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
-  })
-  .then(function(res){
-    return res.json().then(function(j){
-      if(!res.ok){
-        var d = j && j.detail;
-        var e = new Error((d && d.code) ? localizeError(d) : (typeof d === "string" ? d : t("errFetch")));
-        if (d && d.code) e.apiDetail = d;
-        throw e;
-      }
-      return j;
-    }, function(){ throw new Error("HTTP " + res.status); });
-  })
-  .then(function(j){
-    pollJob(j.job_id, pkgsStr, distroV, relV);
-  })
-  .catch(function(err){
-    showError(err.apiDetail, err.message);
-    goBtn.disabled = false;
-  });
+  }), packages.join(", "));
 });
 
 // init language: saved choice > browser > English

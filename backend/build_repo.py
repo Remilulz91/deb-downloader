@@ -44,8 +44,35 @@ def generate_index(out_dir: str | Path) -> Path:
     return packages_gz
 
 
-def write_install_txt(out_dir, distro, release, packages):
+def write_install_txt(out_dir, distro, release, packages, update=False):
     out_dir = Path(out_dir)
+    if update:
+        txt = f"""deb-downloader — offline SYSTEM UPDATE bundle
+=============================================
+Distribution : {distro} {release}
+
+This folder contains exactly the .deb updates the target machine needs to
+reach the current point release of its version (kernel and security fixes
+included), plus an APT index (Packages.gz). It was computed from that
+machine's own dpkg status file, so it applies to THAT machine.
+
+--- Apply the update on the (offline) target machine ---
+    1) Copy this folder onto the machine, e.g. into /opt/deb-downloader
+    2) Add the source (flat repo, no signature required):
+         echo 'deb [trusted=yes] file:/opt/deb-downloader ./' \\
+           | sudo tee /etc/apt/sources.list.d/deb-downloader.list
+    3) Then:
+         sudo apt-get update
+         sudo apt-get dist-upgrade
+    4) Reboot if the kernel was updated:
+         sudo reboot
+    5) Optional clean-up afterwards:
+         sudo rm /etc/apt/sources.list.d/deb-downloader.list
+
+(c) 2026 Remilulz91 - All rights reserved.
+"""
+        (out_dir / "INSTALL.txt").write_text(txt, encoding="utf-8")
+        return
     pkgs = " ".join(packages)
     txt = f"""deb-downloader — offline local repository
 =========================================
@@ -92,8 +119,8 @@ def make_zip(out_dir, zip_path) -> Path:
     return zip_path
 
 
-def build(out_dir, distro, release, packages, zip_path) -> Path:
+def build(out_dir, distro, release, packages, zip_path, update=False) -> Path:
     """Full host-side pipeline: index + INSTALL.txt + zip."""
     generate_index(out_dir)
-    write_install_txt(out_dir, distro, release, packages)
+    write_install_txt(out_dir, distro, release, packages, update=update)
     return make_zip(out_dir, zip_path)

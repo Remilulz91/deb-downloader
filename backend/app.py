@@ -8,6 +8,8 @@ Wraps the fetch engine behind a small FastAPI app:
   GET  /healthz                 -> health check
   GET  /api/distributions       -> supported distro/version list
   POST /api/jobs                -> enqueue a fetch, returns {job_id, status}
+  POST /api/jobs/update         -> enqueue a SYSTEM UPDATE job (multipart upload
+                                   of the target machine's dpkg status file)
   GET  /api/jobs/{id}           -> job status (queued|running|done|error)
   GET  /api/jobs/{id}/download  -> the .zip once the job is done
 
@@ -37,7 +39,7 @@ from pathlib import Path
 from typing import List
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -69,6 +71,9 @@ try:
 except ValueError:
     MAX_JOB_MB = 0
 MAX_JOB_BYTES = MAX_JOB_MB * 1024 * 1024
+
+# Max size accepted for an uploaded dpkg status file (typical: 3-5 MB).
+MAX_STATUS_BYTES = 20 * 1024 * 1024
 
 _EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 _JOBS = {}               # job_id -> dict
@@ -151,6 +156,49 @@ def create_job(req: FetchRequest):
     return {"job_id": job_id, "status": "queued"}
 
 
+@app.post("/api/jobs/update")
+async def create_update_job(distro: str = Form(...), release: str = Form(...),
+                            status: UploadFile = File(...)):
+    """Enqueue a SYSTEM UPDATE job.
+
+    The client uploads the target machine's dpkg status file
+    (/var/lib/dpkg/status). The engine then computes and downloads exactly the
+    updates that machine needs within its release (point release, kernel and
+    security fixes included). One machine = one status file = one job.
+    """
+    try:
+        fetch.validate_update(distro, release, "amd64")
+    except fetch.FetchError as e:
+        raise HTTPException(status_code=400,
+                            detail={"code": e.code, "message": str(e), **e.data})
+
+    data = await status.read()
+    if len(data) > MAX_STATUS_BYTES:
+        raise HTTPException(status_code=413,
+                            detail={"code": "status_too_large",
+                                    "message": "Uploaded file too large."})
+    head = data[:8192].decode("utf-8", "replace")
+    if "Package:" not in head or "Status:" not in head:
+        raise HTTPException(status_code=422,
+                            detail={"code": "bad_status_file",
+                                    "message": "Not a dpkg status file "
+                                               "(expected /var/lib/dpkg/status)."})
+
+    _purge_expired()
+    job_id = uuid.uuid4().hex
+    with _LOCK:
+        _JOBS[job_id] = {
+            "id": job_id, "status": "queued", "created": time.time(),
+            "packages": ["system-update"], "distro": distro, "release": release,
+        }
+    job_dir = JOBS_DIR / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    status_path = job_dir / "dpkg-status"
+    status_path.write_bytes(data)
+    _EXECUTOR.submit(_run_update_job, job_id, distro, release, str(status_path))
+    return {"job_id": job_id, "status": "queued"}
+
+
 @app.get("/api/jobs/{job_id}")
 def job_status(job_id: str):
     """Return the current state of a job."""
@@ -192,7 +240,26 @@ def job_download(job_id: str):
 
 # --- Worker + housekeeping ------------------------------------------------
 def _run_job(job_id, req):
-    """Executed in a worker thread: run the fetch and record the result."""
+    """Worker entry for a package-fetch job."""
+    _execute_job(job_id, lambda work, progress: fetch.run(
+        req.distro, req.release, req.arch, req.packages, out_dir=work,
+        no_recommends=req.no_recommends, progress_cb=progress,
+        max_bytes=MAX_JOB_BYTES))
+
+
+def _run_update_job(job_id, distro, release, status_path):
+    """Worker entry for a system-update job (uploaded dpkg status file)."""
+    _execute_job(job_id, lambda work, progress: fetch.run(
+        distro, release, "amd64", [], out_dir=work, status_path=status_path,
+        progress_cb=progress, max_bytes=MAX_JOB_BYTES))
+
+
+def _execute_job(job_id, runner):
+    """Executed in a worker thread: run the fetch and record the result.
+
+    `runner(work_dir, progress_cb)` does the actual fetch and returns the
+    zip path (it closes over the job-specific parameters).
+    """
     def progress(done, total):
         with _LOCK:
             if job_id in _JOBS:
@@ -219,9 +286,7 @@ def _run_job(job_id, req):
 
     try:
         work.mkdir(parents=True, exist_ok=True)
-        zip_path = fetch.run(req.distro, req.release, req.arch, req.packages,
-                             out_dir=work, no_recommends=req.no_recommends,
-                             progress_cb=progress, max_bytes=MAX_JOB_BYTES)
+        zip_path = runner(work, progress)
         try:
             count = sum(1 for _ in (work / "debs").glob("*.deb"))
         except OSError:

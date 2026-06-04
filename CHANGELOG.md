@@ -5,6 +5,22 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.7.0] — 2026-06-04
+### Added
+- **System update for offline machines.** New **System update** tab: upload the
+  target machine's dpkg status file (`/var/lib/dpkg/status`, copied e.g. on a
+  USB stick) and get a `.zip` containing **exactly the updates that machine
+  needs** within its release (point release, kernel and security fixes
+  included) — the offline equivalent of `apt dist-upgrade`, with no extra tool
+  to install on either side. One machine = one file = one job, so a whole fleet
+  can be handled machine by machine. The engine mounts the uploaded status into
+  the disposable container so apt sees the target's exact installed set; if the
+  machine is already current, the UI says so ("already up to date"). The bundle
+  ships an update-specific `INSTALL.txt`. Major upgrades (e.g. Debian 12 → 13)
+  are intentionally out of scope; EOL releases are brought to their last
+  published state. (API: `POST /api/jobs/update`, multipart; new dependency:
+  `python-multipart` — re-run `pip install -r requirements.txt`.)
+
 ## [v1.6.0] — 2026-06-03
 ### Added
 - **Interactive installer (`deploy/install.sh`).** A single script that
@@ -411,6 +427,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.7.0
 [v1.6.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.6.0
 [v1.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.5.0
 [v1.4.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.4.1

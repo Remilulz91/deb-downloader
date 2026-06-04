@@ -242,6 +242,15 @@ sudo usermod -aG docker "$USER"      # then log out/in (or run: newgrp docker)
 > useful for GitLab's stepped upgrades. Note `gitlab-ce` is large (~1 GB+); mind
 > the per-job quota if you set one.
 
+> **System update (offline machines).** Besides fetching packages, the tool can
+> build a **full update bundle** for a machine that has no internet: on that
+> machine, copy `/var/lib/dpkg/status` (USB stick), upload it in the
+> **System update** tab, and you get a `.zip` with exactly the updates that
+> machine needs **within its release** (point release, e.g. Debian 13.0 → 13.1 —
+> kernel and security fixes included; major upgrades like 12 → 13 are out of
+> scope). EOL releases are brought to their last published state. How to apply
+> the bundle is described in the `INSTALL.txt` inside the `.zip`.
+
 ---
 
 ## 9. Create the Python environment
