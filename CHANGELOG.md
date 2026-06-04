@@ -5,6 +5,20 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.7.1] — 2026-06-04
+### Fixed
+- **Raw "HTTP 413" when uploading a status file through `/app`.** nginx's
+  default upload limit (1 MB) rejected dpkg status files (typically 3-5 MB)
+  before they reached the API, returning a raw HTML page the UI couldn't
+  localize. `deploy/nginx.conf` now allows 25 MB on `/app/`
+  (`client_max_body_size`), and the UI shows a clear localized message for
+  oversized uploads even when the error doesn't come from the API.
+  (Apply with: `git pull` then `sudo docker restart deb-downloader-web`.)
+### Changed
+- The landing page (FR/EN) now presents the **System update** feature: new
+  feature card, updated hero text and meta description. All docs (`README`,
+  `ARCHITECTURE`, `THIRD_PARTY_PACKAGES`) mention it too.
+
 ## [v1.7.0] — 2026-06-04
 ### Added
 - **System update for offline machines.** New **System update** tab: upload the
@@ -427,6 +441,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.7.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.7.1
 [v1.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.7.0
 [v1.6.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.6.0
 [v1.5.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.5.0

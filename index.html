@@ -145,6 +145,7 @@
         <div class="card"><div class="ico">🐧</div><h3 data-i18n="feat2.t"></h3><p data-i18n="feat2.d"></p></div>
         <div class="card"><div class="ico">✈️</div><h3 data-i18n="feat3.t"></h3><p data-i18n="feat3.d"></p></div>
         <div class="card"><div class="ico">🖱️</div><h3 data-i18n="feat4.t"></h3><p data-i18n="feat4.d"></p></div>
+        <div class="card"><div class="ico">🔄</div><h3 data-i18n="feat5.t"></h3><p data-i18n="feat5.d"></p></div>
       </div>
     </div>
   </section>
@@ -186,16 +187,16 @@
 <script>
 /* deb-downloader — i18n (FR/EN) + indicateur de version. 100% navigateur.
    A CHAQUE RELEASE : mettre a jour CONFIG.version. */
-var CONFIG = { owner:"Remilulz91", repo:"deb-downloader", version:"v1.7.0" };
+var CONFIG = { owner:"Remilulz91", repo:"deb-downloader", version:"v1.7.1" };
 var GH_REPO_URL   = "https://github.com/" + CONFIG.owner + "/" + CONFIG.repo;
 var GH_API_LATEST = "https://api.github.com/repos/" + CONFIG.owner + "/" + CONFIG.repo + "/releases/latest";
 
 var I18N = {
   fr: {
-    "meta.desc":"deb-downloader : récupérez un paquet Debian/Ubuntu et toutes ses dépendances, prêts pour une installation hors-ligne, sans ligne de commande.",
+    "meta.desc":"deb-downloader : récupérez un paquet Debian/Ubuntu et toutes ses dépendances — ou la mise à jour complète d'une machine hors-ligne — sans ligne de commande.",
     "nav.features":"Fonctions", "nav.how":"Comment ça marche", "nav.contribute":"Contribuer",
     "hero.h1":"Vos paquets <span class='grad'>.deb</span><br/>et toutes leurs dépendances",
-    "hero.lead":"Choisissez votre distribution, tapez le nom d'un paquet, récupérez l'archive complète prête pour une installation <b>hors-ligne / air-gapped</b>. Sans toucher à la ligne de commande.",
+    "hero.lead":"Choisissez votre distribution, tapez le nom d'un paquet, récupérez l'archive complète prête pour une installation <b>hors-ligne / air-gapped</b> — ou mettez à jour <b>tout un système hors-ligne</b>. Sans toucher à la ligne de commande.",
     "hero.download":"⬇️ Télécharger la dernière version", "hero.howbtn":"Comment ça marche", "hero.tool":"🛠️ Ouvrir l'outil",
     "features.h2":"Ce que fait deb-downloader",
     "features.sub":"L'outil délègue la résolution des dépendances à apt lui-même, dans un conteneur de la distribution cible — le résultat correspond exactement à votre version.",
@@ -203,6 +204,7 @@ var I18N = {
     "feat2.t":"Debian & Ubuntu","feat2.d":"Sélection de la distribution et de la version (ex. Debian 13, Ubuntu 26.04) pour des dépendances exactes.",
     "feat3.t":"Hors-ligne / air-gapped","feat3.d":"Sortie en archive .zip contenant un mini-dépôt local utilisable sans connexion.",
     "feat4.t":"Zéro ligne de commande","feat4.d":"Une interface simple : on choisit, on tape, on télécharge. Pas besoin d'être expert.",
+    "feat5.t":"Mise à jour système","feat5.d":"Envoyez le fichier dpkg status d'une machine hors-ligne et obtenez un .zip avec exactement les mises à jour dont elle a besoin (noyau et sécurité compris).",
     "how.h2":"Comment ça marche","how.sub":"Quatre étapes, du choix du paquet à l'archive prête à l'emploi.",
     "step1.t":"1 · Choisissez votre distribution","step1.d":"Debian ou Ubuntu, puis la version précise (la résolution des dépendances en dépend).",
     "step2.t":"2 · Saisissez le(s) paquet(s)","step2.d":"Par exemple nginx. Plusieurs paquets possibles.",
@@ -222,10 +224,10 @@ var I18N = {
     "vb.err.t":"Impossible de vérifier la version", "vb.err.sub":"Cette copie : <code>{v}</code>. Vérifiez manuellement les <a href='{rel}' target='_blank' rel='noopener' style='color:var(--info)'>releases</a>."
   },
   en: {
-    "meta.desc":"deb-downloader: grab a Debian/Ubuntu package and all its dependencies, ready for offline installation, with no command line.",
+    "meta.desc":"deb-downloader: grab a Debian/Ubuntu package and all its dependencies — or a full update for an offline machine — with no command line.",
     "nav.features":"Features", "nav.how":"How it works", "nav.contribute":"Contribute",
     "hero.h1":"Your <span class='grad'>.deb</span> packages<br/>and all their dependencies",
-    "hero.lead":"Pick your distribution, type a package name, get the full archive ready for an <b>offline / air-gapped</b> install. Without touching the command line.",
+    "hero.lead":"Pick your distribution, type a package name, get the full archive ready for an <b>offline / air-gapped</b> install — or bring a <b>whole offline system</b> up to date. Without touching the command line.",
     "hero.download":"⬇️ Download the latest version", "hero.howbtn":"How it works", "hero.tool":"🛠️ Open the tool",
     "features.h2":"What deb-downloader does",
     "features.sub":"The tool delegates dependency resolution to apt itself, inside a container of the target distribution — so the result matches your version exactly.",
@@ -233,6 +235,7 @@ var I18N = {
     "feat2.t":"Debian & Ubuntu","feat2.d":"Choose the distribution and version (e.g. Debian 13, Ubuntu 26.04) for exact dependencies.",
     "feat3.t":"Offline / air-gapped","feat3.d":"Output is a .zip archive containing a small local repository usable without a connection.",
     "feat4.t":"Zero command line","feat4.d":"A simple interface: choose, type, download. No expertise required.",
+    "feat5.t":"System update","feat5.d":"Upload an offline machine's dpkg status file and get a .zip with exactly the updates it needs (kernel and security fixes included).",
     "how.h2":"How it works","how.sub":"Four steps, from picking the package to a ready-to-use archive.",
     "step1.t":"1 · Pick your distribution","step1.d":"Debian or Ubuntu, then the exact version (dependency resolution depends on it).",
     "step2.t":"2 · Enter the package(s)","step2.d":"For example nginx. Multiple packages are supported.",

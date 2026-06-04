@@ -625,7 +625,16 @@ function submitJob(reqPromise, pkgsStr){
         throw e;
       }
       return j;
-    }, function(){ throw new Error("HTTP " + res.status); });
+    }, function(){
+      // Non-JSON error body (e.g. nginx rejecting an oversized upload with a
+      // raw HTML 413 page before the API is even reached) -> still localize.
+      if (res.status === 413){
+        var e2 = new Error(t("errStatusTooLarge"));
+        e2.apiDetail = {code: "status_too_large"};
+        throw e2;
+      }
+      throw new Error("HTTP " + res.status);
+    });
   })
   .then(function(j){ pollJob(j.job_id, pkgsStr, distroV, relV); })
   .catch(function(err){
