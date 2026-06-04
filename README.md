@@ -1,6 +1,8 @@
 # deb-downloader
 
-> Grab a **Debian / Ubuntu** package and **all of its dependencies**, ready for an **offline / air-gapped** install — without touching the command line.
+> Grab a **Debian / Ubuntu** package and **all of its dependencies** — or a
+> **full system update** for an offline machine — as a ready-to-use `.zip`,
+> without touching the command line. Built for **offline / air-gapped** installs.
 
 Copyright © 2026 **Remilulz91** — All rights reserved. Proprietary license (see [`LICENSE`](LICENSE)).
 
@@ -27,6 +29,7 @@ deb-downloader/
 ├─ CHANGELOG.md      ← version history
 ├─ DEPLOY.md         ← full self-hosting guide (website + engine/API)
 ├─ ARCHITECTURE.md   ← backend engine design
+├─ THIRD_PARTY_PACKAGES.md ← bundled third-party repos (Docker, GitLab, …)
 ├─ deploy/           ← ready-made nginx / Compose / systemd / fail2ban configs
 └─ backend/          ← the package-fetching engine + HTTP API
 ```
@@ -60,7 +63,11 @@ unless you choose to self-host it.
 
 > ℹ️ The **engine** that actually fetches the `.deb` files (dependency
 > resolution via `apt` inside Docker containers) runs server-side under
-> `backend/` and requires a Linux host with Docker. Its setup is covered in
+> `backend/` and requires a Linux host with Docker. Beyond fetching packages,
+> it can also build a **full offline system update** bundle: upload the target
+> machine's `/var/lib/dpkg/status` in the **System update** tab and get a
+> `.zip` with exactly the updates that machine needs within its release
+> (kernel and security fixes included). Setup is covered in
 > [`DEPLOY.md`](DEPLOY.md) (Part 2).
 
 ## Contributing

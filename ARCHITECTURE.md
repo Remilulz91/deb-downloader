@@ -14,6 +14,12 @@ distribution**, query `apt` inside it, download the `.deb` files, build a small
 local repository, then **destroy the container**. The result therefore matches
 exactly what the user would get on their real machine.
 
+The same principle powers the **system update** mode: the target machine's
+`/var/lib/dpkg/status` (uploaded by the user) replaces the container's own, so
+apt sees that machine's exact installed set and computes precisely the updates
+it needs within its release — the offline equivalent of `apt dist-upgrade`,
+one job per machine.
+
 A direct consequence: the engine **must** run on a Linux host with Docker. It is
 fully decoupled from the (static) website already built.
 
@@ -184,6 +190,12 @@ and optionally `apt-cacher-ng`. Deployment on the Linux VM then boils down to
 `POST /api/jobs` receives `{ "distro": "ubuntu", "release": "26.04", "arch":
 "amd64", "packages": ["nginx"] }` and returns `{ "job_id": "...", "status":
 "queued" }`.
+
+`POST /api/jobs/update` (multipart) receives `distro`, `release` and the target
+machine's **dpkg status file** (`/var/lib/dpkg/status`), and enqueues a
+**system-update job**: the engine replaces the container's dpkg status with the
+uploaded one, so `apt-get dist-upgrade --print-uris` yields exactly the updates
+that machine needs within its release. Same job lifecycle as a package fetch.
 
 `GET /api/jobs/{job_id}` returns the state: `queued`, `running`, `done` (with
 `download_url`, `size`, `package_count`) or `error` (with `message`).

@@ -111,3 +111,9 @@ Any package **not** listed above is fetched from the standard Debian/Ubuntu
 archives — just type its name (e.g. `nginx`, `build-essential`, `gnome-core`).
 You can mix base packages and third-party packages in the same request as long as
 they come from the same provider context for the chosen distro/version.
+
+> **Updating a whole machine?** Fetching packages is for *installing* software.
+> To bring an offline machine fully up to date within its release (kernel and
+> security fixes included), use the **System update** tab instead: upload that
+> machine's `/var/lib/dpkg/status` and you'll get a `.zip` with exactly the
+> updates it needs.
