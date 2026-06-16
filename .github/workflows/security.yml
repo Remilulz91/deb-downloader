@@ -1,0 +1,50 @@
+# Security CI — secret scanning + dependency vulnerability audit.
+# Runs on every push / PR and weekly. Helps prevent leaking secrets into the
+# repo and catches known-vulnerable dependencies early (supply-chain defence).
+#
+# Hardening notes:
+#   - Minimal GITHUB_TOKEN permissions (read-only).
+#   - Actions are referenced by tag here for readability; for maximum
+#     supply-chain safety, pin them to a full commit SHA (Dependabot's
+#     github-actions updater will keep the SHAs current).
+#   - Also enable, in the repo settings: Secret scanning + Push protection
+#     (Settings -> Code security and analysis).
+name: security
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-audit:
+    name: Dependency vulnerability audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps + audit
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pip-audit
+          pip-audit --strict

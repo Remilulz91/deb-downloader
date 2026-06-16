@@ -37,6 +37,13 @@ When it finishes, it prints the URL to open — typically **`http://localhost/ap
 > or you want to understand each piece, follow the manual walkthrough. Re-running
 > the script is safe — it updates an existing install rather than duplicating it.
 
+> **HTTPS (optional).** The installer can enable HTTPS with a **self-signed
+> certificate** for your LAN (or drop your own cert into `deploy/certs/` as
+> `fullchain.pem` + `privkey.pem` and use `deploy/nginx-tls.conf`). Self-signed
+> certs make browsers warn once — that's expected on a local network. nginx also
+> applies **rate limiting** and security headers (CSP, etc.) out of the box. The
+> full security model is documented in [`SECURITY.md`](SECURITY.md).
+
 ---
 
 # Part 1 — The website

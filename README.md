@@ -29,6 +29,7 @@ deb-downloader/
 ├─ CHANGELOG.md      ← version history
 ├─ DEPLOY.md         ← full self-hosting guide (website + engine/API)
 ├─ ARCHITECTURE.md   ← backend engine design
+├─ SECURITY.md       ← threat model, hardening, vulnerability reporting
 ├─ THIRD_PARTY_PACKAGES.md ← bundled third-party repos (Docker, GitLab, …)
 ├─ deploy/           ← ready-made nginx / Compose / systemd / fail2ban configs
 └─ backend/          ← the package-fetching engine + HTTP API

@@ -65,7 +65,11 @@ def validate(distro, release, arch, packages):
     if len(packages) > DEFAULTS["max_packages"]:
         raise FetchError("too_many", f"Too many packages (max {DEFAULTS['max_packages']}).",
                          max=DEFAULTS["max_packages"])
-    bad = [p for p in packages if not PKG_RE.match(p)]
+    # Zero Trust: every package token must be short AND match the strict regex
+    # (lowercase name, optional =version, no shell metacharacters). The length
+    # cap bounds the input before the regex; the regex is what makes the value
+    # safe to interpolate into the container script (alongside shlex.quote).
+    bad = [p for p in packages if len(p) > 200 or not PKG_RE.match(p)]
     if bad:
         raise FetchError("invalid_names", f"Invalid package name(s): {bad}", names=bad)
     # Third-party repos (HashiCorp, Docker, ...) are restricted to reliable

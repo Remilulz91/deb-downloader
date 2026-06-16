@@ -97,6 +97,14 @@ if yesno "OPTIONAL — set a per-job size limit (reject sets larger than N MB)?"
   ask MAX_JOB_MB "Max MB per job (0 = unlimited)" "2000"
 fi
 
+# Optional: HTTPS (self-signed certificate for the LAN, or your own cert)
+DO_TLS=0; TLS_CN=""
+if yesno "OPTIONAL — enable HTTPS (self-signed certificate for the LAN)?" n; then
+  DO_TLS=1
+  ip_guess="$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1)"
+  ask TLS_CN "Hostname or IP for the certificate (CN)" "${ip_guess:-localhost}"
+fi
+
 # Optional: UFW firewall
 DO_UFW=0
 yesno "OPTIONAL — enable the UFW firewall (allow SSH + web, close the rest)?" n && DO_UFW=1
@@ -115,6 +123,7 @@ echo "  user            : $RUN_USER"
 echo "  directory       : $PROJECT_DIR"
 echo "  repository      : $REPO_URL"
 echo "  website port    : $WEB_PORT $( [ "$LOCALHOST_ONLY" -eq 1 ] && echo '(localhost only)')"
+echo "  HTTPS           : $( [ "$DO_TLS" -eq 1 ] && echo "yes (CN=$TLS_CN)" || echo no)"
 echo "  jobs directory  : ${JOBS_DIR:-<system temp (default)>}"
 echo "  per-job limit   : ${MAX_JOB_MB:-<unlimited>}"
 echo "  UFW firewall    : $( [ "$DO_UFW" -eq 1 ] && echo yes || echo no)"
@@ -253,6 +262,34 @@ if [ "$DO_F2B_NGINX" -eq 1 ]; then
   mkdir -p /var/log/deb-downloader-nginx
 fi
 
+# Optional HTTPS: generate a self-signed cert, switch nginx to the TLS config,
+# publish 443 and mount the certificates into the container.
+if [ "$DO_TLS" -eq 1 ]; then
+  step "Enabling HTTPS (self-signed certificate, CN=$TLS_CN)"
+  certdir="$PROJECT_DIR/deploy/certs"
+  mkdir -p "$certdir"
+  if [ ! -s "$certdir/privkey.pem" ] || [ ! -s "$certdir/fullchain.pem" ]; then
+    openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
+      -keyout "$certdir/privkey.pem" -out "$certdir/fullchain.pem" \
+      -subj "/CN=${TLS_CN}" \
+      -addext "subjectAltName=DNS:${TLS_CN},IP:${TLS_CN}" 2>/dev/null \
+      || openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
+           -keyout "$certdir/privkey.pem" -out "$certdir/fullchain.pem" \
+           -subj "/CN=${TLS_CN}"
+    chmod 600 "$certdir/privkey.pem"
+    chown -R "$RUN_USER":"$RUN_USER" "$certdir"
+  fi
+  # Use the TLS server block instead of the plain-HTTP one.
+  sed -i -E "s|(deploy/)nginx\.conf(:/etc/nginx/conf\.d/default\.conf)|\1nginx-tls.conf\2|" "$compose"
+  # Publish 443 (once), honouring the localhost-only choice, and mount the certs.
+  tls_bind="443:443"; [ "$LOCALHOST_ONLY" -eq 1 ] && tls_bind="127.0.0.1:443:443"
+  grep -q ':443:443"\|"443:443"' "$compose" || \
+    sed -i -E "s|^([[:space:]]*-[[:space:]]*\")([0-9.:]*80:80\".*)|\1\2\n      - \"${tls_bind}\"|" "$compose"
+  grep -q '/etc/nginx/certs' "$compose" || \
+    sed -i -E "s|(nginx-tls\.conf:/etc/nginx/conf\.d/default\.conf:ro)|\1\n      - ${PROJECT_DIR}/deploy/certs:/etc/nginx/certs:ro|" "$compose"
+  ok "HTTPS configured (self-signed; browsers will warn once — expected on a LAN)"
+fi
+
 ( cd "$PROJECT_DIR" && docker compose -f deploy/docker-compose.yml up -d --force-recreate )
 ok "Website container started"
 
@@ -266,9 +303,10 @@ if [ "$DO_UFW" -eq 1 ]; then
   ufw --force default allow outgoing
   ufw allow 22/tcp                                   # SSH
   ufw allow "${WEB_PORT}/tcp"                        # website
+  [ "$DO_TLS" -eq 1 ] && ufw allow 443/tcp           # HTTPS
   ufw allow from 172.20.0.0/24 to any port 8000 proto tcp   # API, container only
   ufw --force enable
-  ok "UFW enabled (SSH + port ${WEB_PORT}; API reachable only from the web container)"
+  ok "UFW enabled (SSH + web; API reachable only from the web container)"
   warn "Docker can bypass UFW for published ports — fine on a local machine."
 fi
 
@@ -304,23 +342,27 @@ if curl -fsS "http://localhost:8000/healthz" >/dev/null 2>&1; then
 else
   warn "API not responding yet on :8000 — check: journalctl -u deb-downloader-api -e"
 fi
-if curl -fsS "http://localhost:${WEB_PORT}/" >/dev/null 2>&1; then
+if [ "$DO_TLS" -eq 1 ]; then
+  if curl -fsSk "https://localhost/" >/dev/null 2>&1; then ok "Website responding on :443 (HTTPS)"
+  else warn "Website not responding yet on :443 — check: docker logs deb-downloader-web"; fi
+elif curl -fsS "http://localhost:${WEB_PORT}/" >/dev/null 2>&1; then
   ok "Website responding on :${WEB_PORT}"
 else
   warn "Website not responding yet on :${WEB_PORT} — check: docker logs deb-downloader-web"
 fi
 
 ip_addr="$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1 || true)"
-port_sfx=""; [ "$WEB_PORT" != "80" ] && port_sfx=":${WEB_PORT}"
+if [ "$DO_TLS" -eq 1 ]; then scheme="https"; port_sfx=""; else scheme="http"; port_sfx=""; [ "$WEB_PORT" != "80" ] && port_sfx=":${WEB_PORT}"; fi
 
 echo
 echo "${c_grn}============================================================${c_off}"
 echo "${c_grn} deb-downloader is installed and running.${c_off}"
 echo "------------------------------------------------------------"
-echo "  ${c_blue}Use the tool:${c_off}     http://localhost${port_sfx}/app"
+echo "  ${c_blue}Use the tool:${c_off}     ${scheme}://localhost${port_sfx}/app"
 [ -n "$ip_addr" ] && [ "$LOCALHOST_ONLY" -eq 0 ] && \
-echo "  ${c_blue}From the LAN:${c_off}     http://${ip_addr}${port_sfx}/app"
-echo "  ${c_blue}Landing page:${c_off}     http://localhost${port_sfx}/"
+echo "  ${c_blue}From the LAN:${c_off}     ${scheme}://${ip_addr}${port_sfx}/app"
+echo "  ${c_blue}Landing page:${c_off}     ${scheme}://localhost${port_sfx}/"
+[ "$DO_TLS" -eq 1 ] && echo "  ${c_dim}(self-signed cert: your browser will warn once — accept to proceed)${c_off}"
 echo
 echo "  ${c_dim}Service status:   sudo systemctl status deb-downloader-api${c_off}"
 echo "  ${c_dim}Service logs:     journalctl -u deb-downloader-api -f${c_off}"

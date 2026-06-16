@@ -1,0 +1,29 @@
+# Dependabot — automated dependency updates (supply-chain hygiene).
+# Opens PRs when a newer version of a dependency is published, so the project
+# never silently runs an outdated (and potentially vulnerable) component.
+version: 2
+updates:
+  # Python dependencies of the engine/API.
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+
+  # GitHub Actions used in CI (pin/upgrade them too).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+
+  # The nginx base image used by the website container.
+  - package-ecosystem: "docker"
+    directory: "/deploy"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "docker"

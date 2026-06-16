@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import List
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -48,9 +48,42 @@ import fetch
 
 app = FastAPI(
     title="deb-downloader API",
-    version="0.8.1",
+    version="1.8.0",
     description="Fetch a Debian/Ubuntu package and all its dependencies as a .zip.",
 )
+
+
+# --- Security headers (defense in depth) ----------------------------------
+# Applied to every response. The UI is a single self-contained page, so the CSP
+# allows inline script/style but nothing external, blocks framing/plugins, and
+# restricts network calls (connect-src) to same origin. HSTS is intentionally
+# left to the TLS terminator (nginx) since the app itself may be served over
+# plain HTTP on a LAN.
+_CSP = ("default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "form-action 'self'; "
+        "base-uri 'none'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'")
+_SECURITY_HEADERS = {
+    "Content-Security-Policy": _CSP,
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    for k, v in _SECURITY_HEADERS.items():
+        resp.headers.setdefault(k, v)
+    return resp
 
 UI_PATH = Path(__file__).parent / "ui.html"
 FAVICON_PATH = Path(__file__).parent.parent / "favicon.svg"  # repo root
@@ -81,10 +114,13 @@ _LOCK = threading.Lock()
 
 
 class FetchRequest(BaseModel):
-    distro: str = Field(..., examples=["ubuntu"])
-    release: str = Field(..., examples=["26.04"])
-    arch: str = Field("amd64", examples=["amd64"])
-    packages: List[str] = Field(..., min_length=1, examples=[["nginx"]])
+    # Hard bounds at the schema edge (Zero Trust): reject absurd input before it
+    # reaches the engine. Exact format/allowlist checks happen in fetch.validate.
+    distro: str = Field(..., max_length=32, examples=["ubuntu"])
+    release: str = Field(..., max_length=16, examples=["26.04"])
+    arch: str = Field("amd64", max_length=16, examples=["amd64"])
+    packages: List[str] = Field(..., min_length=1, max_length=20,
+                                examples=[["nginx"]])
     no_recommends: bool = False
 
 
@@ -157,7 +193,8 @@ def create_job(req: FetchRequest):
 
 
 @app.post("/api/jobs/update")
-async def create_update_job(distro: str = Form(...), release: str = Form(...),
+async def create_update_job(distro: str = Form(..., max_length=32),
+                            release: str = Form(..., max_length=16),
                             status: UploadFile = File(...)):
     """Enqueue a SYSTEM UPDATE job.
 

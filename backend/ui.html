@@ -275,14 +275,17 @@ function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return {"&":"&a
 
 function localizeError(d){
   if(!d) return t("errFetch");
+  // Every value below is interpolated into innerHTML, so escape it. The server
+  // already constrains these (strict regex), but escaping is defense in depth:
+  // a value must never be able to inject markup, whatever its origin.
   switch(d.code){
-    case "package_not_found": return t("errNotFound").replace("{pkgs}", (d.packages||[]).join(", "));
-    case "invalid_names":      return t("errInvalid").replace("{names}", (d.names||[]).join(", "));
-    case "too_many":           return t("errTooMany").replace("{max}", d.max);
+    case "package_not_found": return t("errNotFound").replace("{pkgs}", esc((d.packages||[]).join(", ")));
+    case "invalid_names":      return t("errInvalid").replace("{names}", esc((d.names||[]).join(", ")));
+    case "too_many":           return t("errTooMany").replace("{max}", esc(d.max));
     case "no_space":           return t("errNoSpace");
-    case "too_large":          return t("errTooLarge").replace("{size}", formatSize(d.size)).replace("{max}", formatSize(d.max));
-    case "repo_unavailable":   return t("errRepo").replace("{pkgs}", (d.packages||[]).join(", ")).replace("{repo}", d.repo||"").replace("{distro}", d.distro||"").replace("{release}", d.release||"").replace("{arch}", d.arch||"");
-    case "version_not_found":  return t("errVersion").replace("{version}", d.version||"").replace("{package}", d.package||"");
+    case "too_large":          return t("errTooLarge").replace("{size}", esc(formatSize(d.size))).replace("{max}", esc(formatSize(d.max)));
+    case "repo_unavailable":   return t("errRepo").replace("{pkgs}", esc((d.packages||[]).join(", "))).replace("{repo}", esc(d.repo||"")).replace("{distro}", esc(d.distro||"")).replace("{release}", esc(d.release||"")).replace("{arch}", esc(d.arch||""));
+    case "version_not_found":  return t("errVersion").replace("{version}", esc(d.version||"")).replace("{package}", esc(d.package||""));
     case "bad_status_file":    return t("errBadStatus");
     case "status_too_large":   return t("errStatusTooLarge");
     case "timeout": {
@@ -587,13 +590,16 @@ function pollJob(jobId, pkgsStr, distroV, relV){
         a.href = dlUrl; a.download = name;
         document.body.appendChild(a); a.click(); a.remove();
         showStatus("ok", function(){
-          var html = t("done").replace("{name}", name);
+          // name / dlUrl are server-generated and already sanitized; escape
+          // anyway (defense in depth) before putting them in markup/attributes.
+          var safeName = esc(name), safeUrl = encodeURI(dlUrl);
+          var html = t("done").replace("{name}", safeName);
           if (count != null || sizeStr){
             html += '<div style="margin-top:6px;font-size:.88rem;opacity:.85">'
-                  + t("doneMeta").replace("{count}", count == null ? "?" : count).replace("{size}", sizeStr)
+                  + t("doneMeta").replace("{count}", esc(count == null ? "?" : count)).replace("{size}", esc(sizeStr))
                   + '</div>';
           }
-          html += '<div style="margin-top:8px"><a href="' + dlUrl + '" download="' + name
+          html += '<div style="margin-top:8px"><a href="' + safeUrl + '" download="' + safeName
                 + '" style="color:var(--ok);text-decoration:underline">' + t("redownload") + '</a></div>';
           return html;
         });

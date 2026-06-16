@@ -22,3 +22,18 @@ __pycache__/
 # Sorties de travail du moteur
 backend/out/
 *.zip
+
+# Secrets / TLS — ne JAMAIS committer (supply-chain / fuite de secrets)
+deploy/certs/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+.env.*
+*.secret
+*_secret*
+id_rsa
+id_ed25519
+*.kdbx

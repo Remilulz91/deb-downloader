@@ -1,9 +1,16 @@
 # HTTP API (app.py). Install on the host that runs Docker + dpkg-dev:
 #   pip install -r requirements.txt
 #   uvicorn app:app --host 0.0.0.0 --port 8000
-fastapi>=0.110
-uvicorn[standard]>=0.29
-python-multipart>=0.0.9     # multipart upload (system-update jobs)
+#
+# Versions are pinned with a secure LOWER bound (>=) to prevent installing a
+# known-vulnerable OLDER release, and an UPPER bound (<next major) to avoid a
+# surprise breaking change. Dependabot (.github/dependabot.yml) proposes bumps.
+# For a fully reproducible, tamper-evident install (supply-chain hardening):
+#   pip install pip-tools && pip-compile --generate-hashes requirements.txt
+#   pip install --require-hashes -r requirements.txt
+fastapi>=0.115.0,<1.0           # 0.115+: latest secure line
+uvicorn[standard]>=0.30.0,<1.0
+python-multipart>=0.0.18,<1.0   # 0.0.18 fixes CVE-2024-53981 (multipart DoS)
 
 # The standalone CLI (fetch.py / build_repo.py) needs no pip dependencies.
 #
