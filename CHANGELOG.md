@@ -5,6 +5,17 @@ All notable versions of **deb-downloader** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.1] — 2026-06-05
+### Fixed
+- **System update: the uploaded status file is now checked against the selected
+  distribution/version.** Previously, choosing e.g. Debian 13 but uploading a
+  Debian 12 machine's `dpkg status` still produced a `.zip` — effectively a
+  cross-release upgrade (12 → 13), which is out of scope and unsafe. The engine
+  now detects the real OS from the file (via the always-present `base-files`
+  package) and rejects a mismatch with a clear message ("this file looks like
+  Debian 12, but you selected Debian 13"). Detection is advisory: if the file
+  can't be identified, the job is not blocked.
+
 ## [v1.8.0] — 2026-06-05
 ### Security
 - **Security hardening pass** (see the new [`SECURITY.md`](SECURITY.md) for the
@@ -461,6 +472,7 @@ several) plus all their dependencies as a ready-to-use offline `.zip`. Highlight
 - Sections: overview, features, "how it works", contributing / bug reporting.
 - Proprietary license (all rights reserved).
 
+[v1.8.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.8.1
 [v1.8.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.8.0
 [v1.7.1]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.7.1
 [v1.7.0]: https://github.com/Remilulz91/deb-downloader/releases/tag/v1.7.0

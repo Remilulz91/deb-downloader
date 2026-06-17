@@ -214,12 +214,26 @@ async def create_update_job(distro: str = Form(..., max_length=32),
         raise HTTPException(status_code=413,
                             detail={"code": "status_too_large",
                                     "message": "Uploaded file too large."})
-    head = data[:8192].decode("utf-8", "replace")
-    if "Package:" not in head or "Status:" not in head:
+    text = data.decode("utf-8", "replace")
+    if "Package:" not in text[:8192] or "Status:" not in text[:8192]:
         raise HTTPException(status_code=422,
                             detail={"code": "bad_status_file",
                                     "message": "Not a dpkg status file "
                                                "(expected /var/lib/dpkg/status)."})
+
+    # The user picks distro/version, but the TRUTH is in the file. Detect the OS
+    # from the upload and refuse a mismatch — otherwise apt would compute a
+    # cross-release "upgrade" (e.g. Debian 12 -> 13), which is out of scope and
+    # unsafe. Detection is advisory: if it can't tell, we don't block.
+    chosen_d, chosen_r = distro.lower().strip(), release.strip()
+    det_d, det_r = distros.detect_os_from_status(text)
+    if det_d and (det_d != chosen_d or (det_r and det_r != chosen_r)):
+        raise HTTPException(status_code=422, detail={
+            "code": "status_mismatch",
+            "message": "The uploaded status file does not match the selected "
+                       "distribution/version.",
+            "detected_distro": det_d, "detected_release": det_r or "?",
+            "distro": chosen_d, "release": chosen_r})
 
     _purge_expired()
     job_id = uuid.uuid4().hex

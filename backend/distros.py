@@ -4,6 +4,7 @@ Copyright (c) 2026 Remilulz91. All rights reserved.
 Maps (distribution, version) -> official Docker image, plus architectures, and
 handles EOL releases (whose apt mirrors moved to archive servers).
 """
+import re
 
 # Key: (distro, release) -> base Docker image. Newest first per distro.
 SUPPORTED = {
@@ -138,6 +139,43 @@ def repo_setup(repo_id, distro, release, arch):
 
 def is_eol(distro: str, release: str) -> bool:
     return (distro.lower().strip(), release.strip()) in _EOL
+
+
+# Historical mapping of the Ubuntu `base-files` major version to the release.
+# Best-effort (a brand-new Ubuntu release may need a new entry); used only to
+# reject an obviously mismatched upload, never to silently proceed.
+_UBUNTU_BASEFILES = {"11": "20.04", "12": "22.04", "13": "24.04", "14": "26.04"}
+
+
+def detect_os_from_status(text: str):
+    """Best-effort detection of (distro, release) from a dpkg status file.
+
+    Relies on the `base-files` package — Essential, always installed — whose
+    Version encodes the OS release: on Debian the major IS the Debian version
+    (e.g. 12.4 -> "12"); on Ubuntu it is "<major>ubuntuN" with a known mapping
+    (e.g. 12ubuntu4 -> 22.04). Returns (distro, release); release may be None if
+    only the family is known, and (None, None) if nothing can be determined
+    (in which case the caller should not block — detection is advisory).
+    """
+    text = text.replace("\r\n", "\n")
+    ver = None
+    for stanza in text.split("\n\n"):
+        if "base-files" not in stanza:
+            continue
+        if re.search(r"^Package:[ \t]*base-files[ \t]*$", stanza, re.M):
+            m = re.search(r"^Version:[ \t]*(\S+)", stanza, re.M)
+            if m:
+                ver = m.group(1)
+                break
+    if not ver:
+        return (None, None)
+    major_m = re.match(r"(\d+)", ver)
+    major = major_m.group(1) if major_m else None
+    if "ubuntu" in ver.lower():
+        return ("ubuntu", _UBUNTU_BASEFILES.get(major))
+    if major:
+        return ("debian", major)
+    return (None, None)
 
 
 def apt_opts(distro: str, release: str) -> str:

@@ -186,6 +186,7 @@ var I18N = {
     upToDate: "✅ This machine is already up to date — nothing to download.",
     errBadStatus: "This doesn't look like a dpkg status file (expected: /var/lib/dpkg/status from the target machine).",
     errStatusTooLarge: "The uploaded file is too large.",
+    errStatusMismatch: "This file looks like {detd} {detr}, but you selected {distro} {release}. Select the matching version, or upload the right machine's file.",
     norec: "Exclude recommended packages",
     go: "⬇️ Fetch & download .zip",
     home: "← Home",
@@ -238,6 +239,7 @@ var I18N = {
     upToDate: "✅ Cette machine est déjà à jour — rien à télécharger.",
     errBadStatus: "Ce fichier ne ressemble pas à un dpkg status (attendu : /var/lib/dpkg/status de la machine cible).",
     errStatusTooLarge: "Le fichier envoyé est trop volumineux.",
+    errStatusMismatch: "Ce fichier semble être {detd} {detr}, mais vous avez choisi {distro} {release}. Choisissez la version correspondante, ou envoyez le fichier de la bonne machine.",
     norec: "Exclure les paquets recommandés",
     go: "⬇️ Récupérer & télécharger le .zip",
     home: "← Accueil",
@@ -288,6 +290,7 @@ function localizeError(d){
     case "version_not_found":  return t("errVersion").replace("{version}", esc(d.version||"")).replace("{package}", esc(d.package||""));
     case "bad_status_file":    return t("errBadStatus");
     case "status_too_large":   return t("errStatusTooLarge");
+    case "status_mismatch":    return t("errStatusMismatch").replace("{detd}", esc(d.detected_distro||"?")).replace("{detr}", esc(d.detected_release||"?")).replace("{distro}", esc(d.distro||"")).replace("{release}", esc(d.release||""));
     case "timeout": {
       var m = t("errTimeout");
       if(d.log_tail) m += "<pre class='logtail'>" + esc(d.log_tail) + "</pre>";
