@@ -9,7 +9,7 @@
 #   pip install pip-tools && pip-compile --generate-hashes requirements.txt
 #   pip install --require-hashes -r requirements.txt
 fastapi>=0.115.0,<1.0           # 0.115+: latest secure line
-uvicorn[standard]>=0.30.0,<1.0
+uvicorn[standard]>=0.50.0,<1.0
 python-multipart>=0.0.18,<1.0   # 0.0.18 fixes CVE-2024-53981 (multipart DoS)
 
 # The standalone CLI (fetch.py / build_repo.py) needs no pip dependencies.
