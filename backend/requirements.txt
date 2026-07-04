@@ -8,7 +8,7 @@
 # For a fully reproducible, tamper-evident install (supply-chain hardening):
 #   pip install pip-tools && pip-compile --generate-hashes requirements.txt
 #   pip install --require-hashes -r requirements.txt
-fastapi>=0.115.0,<1.0           # 0.115+: latest secure line
+fastapi>=0.139.0,<1.0           # 0.115+: latest secure line
 uvicorn[standard]>=0.30.0,<1.0
 python-multipart>=0.0.18,<1.0   # 0.0.18 fixes CVE-2024-53981 (multipart DoS)
 
